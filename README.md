@@ -2,6 +2,9 @@
 
 # Disk Space Analyzer
 
+
+## Ci
+![CI](https://github.com/serhii-pokrovskyi/space-crab/actions/workflows/simple-ci.yml/badge.svg?branch=main)
 A fast, cross-platform command-line tool written in Rust to analyze disk usage.
 
 ## Features
