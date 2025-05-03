@@ -1,6 +1,6 @@
 mod path_scaner;
 
-use std::path::{self, Path};
+use std::path::Path;
 use path_scaner::{Scanner, FilesScaner};
 
 fn main() -> std::io::Result<()> {
