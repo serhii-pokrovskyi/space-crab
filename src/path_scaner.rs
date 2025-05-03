@@ -37,10 +37,6 @@ mod tests {
         let tmp = tempdir()?;
         let dir = tmp.path();
 
-        // create structure:
-        // /foo.txt
-        // /sub/bar.log
-        // /sub/deeper/baz.md
         fs::File::create(dir.join("foo.txt"))?
             .write_all(b"hello")?;
         fs::create_dir_all(dir.join("sub/deeper"))?;
