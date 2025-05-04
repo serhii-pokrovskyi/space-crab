@@ -80,7 +80,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "space-crab"
+name = "spacecrab"
+version = "0.1.0"
+dependencies = [
+ "spacecrab-core",
+]
+
+[[package]]
+name = "spacecrab-core"
 version = "0.1.0"
 dependencies = [
  "tempfile",
