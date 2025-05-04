@@ -6,9 +6,9 @@ pub trait Scanner {
     fn scan(&self, dir: &Path) -> io::Result<Vec<PathBuf>>;
 }
 
-pub struct FilesScaner;
+pub struct FilesScanner;
 
-impl Scanner for FilesScaner {
+impl Scanner for FilesScanner {
     fn scan(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
         let mut entries = Vec::new();
         for entry in fs::read_dir(dir)? {
@@ -45,7 +45,7 @@ mod tests {
         fs::File::create(dir.join("sub/deeper/baz.md"))?
             .write_all(b"!")?;
 
-        let scaner = FilesScaner;
+        let scaner = FilesScanner;
         let mut files = scaner.scan(dir)?;
         files.sort();
 

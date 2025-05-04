@@ -1,10 +1,10 @@
-mod path_scaner;
+mod path_scanner;
 
 use std::path::Path;
-use path_scaner::{Scanner, FilesScaner};
+use path_scanner::{Scanner, FilesScanner};
 
 fn main() -> std::io::Result<()> {
-    let scaner = FilesScaner;
+    let scaner = FilesScanner;
     let files = scaner.scan(Path::new("."))?;
     for path in files {
         println!("{}", path.display())
