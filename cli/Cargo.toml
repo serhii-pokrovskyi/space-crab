@@ -8,4 +8,4 @@ name = "spacecrab"
 path = "src/main.rs"
 
 [dependencies]
-spacecrab_core = { package = "spacecrab-core", path = "../core" }
+spacecrab-core = { package = "spacecrab-core", path = "../core" }
