@@ -1,7 +1,5 @@
-mod path_scanner;
-
 use std::path::Path;
-use path_scanner::{Scanner, FilesScanner};
+use spacecrab_core::{Scanner, FilesScanner};
 
 fn main() -> std::io::Result<()> {
     let scaner = FilesScanner;
