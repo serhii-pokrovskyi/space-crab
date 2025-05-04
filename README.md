@@ -1,5 +1,7 @@
 # space-crab
 
+no alpha release yet
+
 # Disk Space Analyzer
 
 A fast, cross-platform command-line tool written in Rust to analyze disk usage.
