@@ -2,6 +2,11 @@
 name = "spacecrab-core"
 version = "0.1.0"
 edition = "2024"
+description = "Core file-scanning library for SpaceCrab"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/serhii-pokrovskyi/space-crab"
+keywords = ["filesystem", "scanner", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dev-dependencies]
 tempfile = "3.19.1"
