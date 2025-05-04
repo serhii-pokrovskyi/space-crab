@@ -1,0 +1,11 @@
+[package]
+name = "spacecrab-core"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "spacecrab"
+path = "src/lib.rs"
+
+[dev-dependencies]
+tempfile = "3.19.1"

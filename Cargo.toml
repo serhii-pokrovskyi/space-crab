@@ -1,11 +1,5 @@
-[package]
-name = "space-crab"
-version = "0.1.0"
-edition = "2024"
-
-[[bin]]
-name = "spacecrab"
-path = "src/main.rs"
-
-[dev-dependencies]
-tempfile = "3.19.1"
+[workspace]
+members = [
+  "core",
+  "cli"
+]
