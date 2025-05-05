@@ -1,6 +1,9 @@
 [package]
 name = "spacecrab"
 edition = "2024"
+version.workspace = true
+repository.workspace = true
+license.workspace = true
 description = "Command-line interface for the SpaceCrab scanner"
 keywords = ["cli", "scanner", "files"]
 categories = ["command-line-utilities"]
