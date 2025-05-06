@@ -1,7 +1,12 @@
 [package]
 name = "spacecrab-core"
-version = "0.1.0"
 edition = "2024"
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+description = "Core file-scanning library for SpaceCrab"
+keywords = ["filesystem", "scanner", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dev-dependencies]
 tempfile = "3.19.1"

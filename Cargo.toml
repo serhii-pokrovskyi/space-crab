@@ -4,3 +4,8 @@ members = [
   "core",
   "cli"
 ]
+
+[workspace.package]
+version = "0.1.0"
+repository = "https://github.com/serhii-pokrovskyi/space-crab"
+license = "MIT OR Apache-2.0"
