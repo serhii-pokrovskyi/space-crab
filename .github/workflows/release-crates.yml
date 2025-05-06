@@ -18,6 +18,8 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
     strategy:
       matrix:
         rust-version: [stable]
@@ -31,8 +33,6 @@ jobs:
         run: cargo test --workspace --all-features --locked
 
       - name: Login to crates.io
-        env:
-          CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
         run: cargo login $CARGO_TOKEN
 
       - name: Publish core crate
