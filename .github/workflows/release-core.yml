@@ -1,22 +1,15 @@
 name: Release Core
 
-# on:
-#   release:
-#     types: [published]
-
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  release:
+    types: [published]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  release:
+  release-core:
+    if: startsWith(github.event.release.tag_name, 'core-v')
     runs-on: ubuntu-latest
     env:
       CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
@@ -26,6 +19,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - name: Set up Rust
         run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
 
