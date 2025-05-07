@@ -1,0 +1,38 @@
+name: Release Core
+
+on:
+  release:
+    types: [published]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-core:
+    if: startsWith(github.event.release.tag_name, 'core-v')
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
+    strategy:
+      matrix:
+        rust-version: [stable]
+
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Set up Rust
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+
+      - name: Cargo test
+        run: cargo test --workspace --all-features --locked
+
+      - name: Login to crates.io
+        run: cargo login $CARGO_TOKEN
+
+      - name: Publish core crate
+        working-directory: core
+        run: cargo publish --token $CARGO_TOKEN
+
+      - name: Publish CLI crate
+        working-directory: cli
+        run: cargo publish --token $CARGO_TOKEN
