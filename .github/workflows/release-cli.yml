@@ -1,0 +1,40 @@
+name: Release All Crates
+
+# on:
+#   release:
+#     types: [published]
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
+    strategy:
+      matrix:
+        rust-version: [stable]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+
+      - name: Cargo test
+        run: cargo test --workspace --all-features --locked
+
+      - name: Login to crates.io
+        run: cargo login $CARGO_TOKEN
+
+      - name: Publish CLI crate
+        working-directory: cli
+        run: cargo publish --token $CARGO_TOKEN

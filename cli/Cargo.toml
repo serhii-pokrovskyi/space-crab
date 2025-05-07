@@ -13,4 +13,4 @@ name = "spacecrab"
 path = "src/main.rs"
 
 [dependencies]
-spacecrab-core = { package = "spacecrab-core", path = "../core" }
+spacecrab-core = "0.x"
