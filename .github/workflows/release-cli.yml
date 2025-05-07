@@ -1,4 +1,4 @@
-name: Release All Crates
+name: Release Cli
 
 # on:
 #   release:
