@@ -32,7 +32,3 @@ jobs:
       - name: Publish core crate
         working-directory: core
         run: cargo publish --token $CARGO_TOKEN
-
-      - name: Publish CLI crate
-        working-directory: cli
-        run: cargo publish --token $CARGO_TOKEN
