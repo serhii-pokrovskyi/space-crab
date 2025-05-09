@@ -1,7 +1,7 @@
 use std::{
     fs,
     io,
-    path::{PathBuf}
+    path::PathBuf
 };
 
 pub struct TotalSizeCalculcator;
