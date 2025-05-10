@@ -5,6 +5,7 @@ use std::{
 };
 
 pub struct TotalSizeCalculcator;
+pub struct SizeCalculator;
 
 impl TotalSizeCalculcator {
     pub fn total_size(bufs: &Vec<PathBuf>) -> io::Result<u64> {
@@ -13,5 +14,12 @@ impl TotalSizeCalculcator {
             total += fs::metadata(path)?.len();
         }
         Ok(total)
+    }
+}
+
+impl SizeCalculator {
+    pub fn size(buf: PathBuf) -> io::Result<u64> {
+        let size = fs::metadata(buf)?.len();
+        Ok(size)
     }
 }
