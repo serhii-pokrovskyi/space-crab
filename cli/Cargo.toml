@@ -13,4 +13,5 @@ name = "spacecrab"
 path = "src/main.rs"
 
 [dependencies]
+clap = "4.5.37"
 spacecrab-core = "0.x"
