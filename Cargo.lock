@@ -81,14 +81,14 @@ dependencies = [
 
 [[package]]
 name = "spacecrab"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "spacecrab-core",
 ]
 
 [[package]]
 name = "spacecrab-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "tempfile",
 ]
