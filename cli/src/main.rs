@@ -1,4 +1,6 @@
-use std::path::Path;
+mod cli;
+
+use clap::Parser;
 use spacecrab_core::{
     Scanner,
     FilesScanner,
@@ -6,10 +8,13 @@ use spacecrab_core::{
     TotalSizeCalculcator,
     SizeFormatter
 };
+use cli::Cli;
 
 fn main() -> std::io::Result<()> {
+    let cli = Cli::parse();
+    
     let scaner = FilesScanner;
-    let files = scaner.scan(Path::new("."))?;
+    let files = scaner.scan(cli.directory.as_path())?;
     let total = TotalSizeCalculcator::total_size(&files).unwrap();
     for path in files {
         let size = SizeCalculator::size(path.clone()).unwrap();
