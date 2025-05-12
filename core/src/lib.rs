@@ -4,7 +4,7 @@ pub mod formatter;
 
 pub use path_scanner::{
     Scanner, 
-    FilesScanner
+    FullScaner
 };
 pub use calculator::{
     SizeCalculator,
