@@ -18,7 +18,7 @@ impl TotalSizeCalculcator {
 }
 
 impl SizeCalculator {
-    pub fn size(buf: PathBuf) -> io::Result<u64> {
+    pub fn size(buf: &PathBuf) -> io::Result<u64> {
         let size = fs::metadata(buf)?.len();
         Ok(size)
     }

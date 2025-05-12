@@ -17,7 +17,7 @@ fn main() -> std::io::Result<()> {
     let files = scaner.scan(cli.directory.as_path())?;
     let total = TotalSizeCalculcator::total_size(&files).unwrap();
     for path in files {
-        let size = SizeCalculator::size(path.clone()).unwrap();
+        let size = SizeCalculator::size(&path).unwrap();
         println!("{} {}", path.display(), SizeFormatter::format(size))
     }
     println!("\ntotal size: {}", SizeFormatter::format(total));
