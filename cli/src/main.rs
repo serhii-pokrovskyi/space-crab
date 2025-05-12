@@ -3,7 +3,7 @@ mod cli;
 use clap::Parser;
 use spacecrab_core::{
     Scanner,
-    FullScaner,
+    RecurciveScanner,
     SizeCalculator,
     TotalSizeCalculcator,
     SizeFormatter
@@ -13,7 +13,7 @@ use cli::Cli;
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
     
-    let scaner = FullScaner;
+    let scaner = RecurciveScanner;
     let files = scaner.scan(cli.directory.as_path())?;
     let total = TotalSizeCalculcator::total_size(&files).unwrap();
     for path in files {
