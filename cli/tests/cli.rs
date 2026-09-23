@@ -81,3 +81,29 @@ fn closed_stdout_exits_cleanly() -> io::Result<()> {
     assert!(output.status.success());
     Ok(())
 }
+
+#[cfg(unix)]
+#[test]
+fn unreadable_dir_is_reported_and_scan_continues() -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmp = tempdir()?;
+    let dir = tmp.path();
+
+    fs::write(dir.join("a.txt"), [0; 1000])?;
+    fs::create_dir(dir.join("locked"))?;
+    fs::set_permissions(dir.join("locked"), fs::Permissions::from_mode(0o000))?;
+
+    let output = Command::new(env!("CARGO_BIN_EXE_spacecrab"))
+        .current_dir(dir)
+        .output();
+    fs::set_permissions(dir.join("locked"), fs::Permissions::from_mode(0o755))?;
+    let output = output?;
+
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert_eq!(stdout, "./a.txt 1000 B\n\ntotal size: 1000 B\n");
+    assert!(stderr.starts_with("spacecrab: ./locked: "));
+    Ok(())
+}
