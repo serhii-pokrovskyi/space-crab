@@ -57,3 +57,43 @@ jobs:
         run: cargo publish -p spacecrab --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+
+  # Prebuilt binaries, attached to the GitHub release once both crates are published.
+  # Archive names (spacecrab-<target>-vX.Y.Z) match cargo-binstall's default lookup.
+  upload-binaries:
+    needs: publish-cli
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: aarch64-pc-windows-msvc
+            os: windows-11-arm
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build and upload spacecrab
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: spacecrab
+          target: ${{ matrix.target }}
+          archive: $bin-$target-$tag
+          include: README.md,LICENSE-MIT.MD,LICENSE-APACHE.MD
+          checksum: sha256
+          build-tool: cargo
+          locked: true

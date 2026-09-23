@@ -8,6 +8,22 @@ Early development: the CLI lists every file under the current directory with its
 
 ## Install
 
+### Prebuilt binary
+
+Download the archive for your platform from the [Releases page](https://github.com/serhii-pokrovskyi/space-crab/releases), unpack it, and put `spacecrab` somewhere on your `PATH`. Binaries are available for Linux (x86-64, ARM64), macOS (Apple Silicon, Intel) and Windows (x86-64, ARM64), each with a `.sha256` checksum file.
+
+On macOS the binaries are not signed. If macOS blocks a file downloaded in a browser, allow it in **System Settings → Privacy & Security**, or run `xattr -d com.apple.quarantine spacecrab`.
+
+### With cargo-binstall
+
+If you have [cargo-binstall](https://github.com/cargo-bins/cargo-binstall), it downloads the prebuilt binary instead of compiling:
+
+```bash
+cargo binstall spacecrab
+```
+
+### From source
+
 ```bash
 cargo install spacecrab
 ```
