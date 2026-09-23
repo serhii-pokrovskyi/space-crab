@@ -1,4 +1,4 @@
-use spacecrab_core::{FilesScanner, Scanner, SizeCalculator, SizeFormatter};
+use spacecrab_core::{file_size, format_size, scan};
 use std::{
     io::{self, Write},
     path::Path,
@@ -14,16 +14,15 @@ fn main() -> io::Result<ExitCode> {
 }
 
 fn run() -> io::Result<ExitCode> {
-    let scanner = FilesScanner;
-    let files = scanner.scan(Path::new("."))?;
+    let files = scan(Path::new("."))?;
     let mut stdout = io::BufWriter::new(io::stdout().lock());
     let mut total = 0;
     let mut failed = false;
     for path in files {
-        match SizeCalculator::size(&path) {
+        match file_size(&path) {
             Ok(size) => {
                 total += size;
-                writeln!(stdout, "{} {}", path.display(), SizeFormatter::format(size))?;
+                writeln!(stdout, "{} {}", path.display(), format_size(size))?;
             }
             Err(err) => {
                 stdout.flush()?;
@@ -32,7 +31,7 @@ fn run() -> io::Result<ExitCode> {
             }
         }
     }
-    writeln!(stdout, "\ntotal size: {}", SizeFormatter::format(total))?;
+    writeln!(stdout, "\ntotal size: {}", format_size(total))?;
     stdout.flush()?;
     Ok(if failed {
         ExitCode::FAILURE

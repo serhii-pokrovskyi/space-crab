@@ -3,27 +3,19 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub trait Scanner {
-    fn scan(&self, dir: &Path) -> io::Result<Vec<PathBuf>>;
-}
-
-pub struct FilesScanner;
-
-impl Scanner for FilesScanner {
-    fn scan(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
-        let mut entries = Vec::new();
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            // file_type() does not follow symlinks: a symlinked directory is listed, not entered.
-            if entry.file_type()?.is_dir() {
-                entries.extend(self.scan(&path)?);
-            } else {
-                entries.push(path);
-            }
+pub fn scan(dir: &Path) -> io::Result<Vec<PathBuf>> {
+    let mut entries = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        // file_type() does not follow symlinks: a symlinked directory is listed, not entered.
+        if entry.file_type()?.is_dir() {
+            entries.extend(scan(&path)?);
+        } else {
+            entries.push(path);
         }
-        Ok(entries)
     }
+    Ok(entries)
 }
 
 #[cfg(test)]
@@ -44,8 +36,7 @@ mod tests {
         fs::File::create(dir.join("sub/bar.log"))?.write_all(b"world")?;
         fs::File::create(dir.join("sub/deeper/baz.md"))?.write_all(b"!")?;
 
-        let scanner = FilesScanner;
-        let mut files = scanner.scan(dir)?;
+        let mut files = scan(dir)?;
         files.sort();
 
         let expected: Vec<PathBuf> = vec![
@@ -68,7 +59,7 @@ mod tests {
         fs::File::create(dir.join("real/foo.txt"))?.write_all(b"hello")?;
         std::os::unix::fs::symlink(dir.join("real"), dir.join("link"))?;
 
-        let mut files = FilesScanner.scan(dir)?;
+        let mut files = scan(dir)?;
         files.sort();
 
         assert_eq!(files, vec![dir.join("link"), dir.join("real/foo.txt")]);
@@ -83,7 +74,7 @@ mod tests {
 
         std::os::unix::fs::symlink(dir, dir.join("loop"))?;
 
-        let files = FilesScanner.scan(dir)?;
+        let files = scan(dir)?;
 
         assert_eq!(files, vec![dir.join("loop")]);
         Ok(())
