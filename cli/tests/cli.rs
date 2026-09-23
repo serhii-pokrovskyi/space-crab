@@ -60,3 +60,24 @@ fn size_error_is_reported_and_scan_continues() -> io::Result<()> {
     assert!(stderr.starts_with("spacecrab: ./locked/b.txt: "));
     Ok(())
 }
+
+#[cfg(unix)]
+#[test]
+fn closed_stdout_exits_cleanly() -> io::Result<()> {
+    use std::process::Stdio;
+
+    let tmp = tempdir()?;
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_spacecrab"))
+        .current_dir(tmp.path())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    // Close the read end before the CLI prints anything, like `spacecrab | head -0`.
+    drop(child.stdout.take());
+    let output = child.wait_with_output()?;
+
+    assert_eq!(String::from_utf8(output.stderr).unwrap(), "");
+    assert!(output.status.success());
+    Ok(())
+}
