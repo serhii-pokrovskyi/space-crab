@@ -1,0 +1,82 @@
+# TEMPORARY: delete this file before merging.
+# Builds the same binaries as the upload-binaries job in release.yml, without uploading,
+# and checks each archive: expected files inside, and the binary runs where the runner can execute it.
+name: Binaries dry run
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            run: true
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+            run: true
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            run: true
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            run: false # Intel binary on an Apple Silicon runner
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            run: true
+          - target: aarch64-pc-windows-msvc
+            os: windows-11-arm
+            run: true
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build (dry run, no upload)
+        id: build
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: spacecrab
+          target: ${{ matrix.target }}
+          archive: $bin-$target-$tag
+          include: README.md,LICENSE-MIT.MD,LICENSE-APACHE.MD
+          checksum: sha256
+          build-tool: cargo
+          locked: true
+          dry-run: true
+          dry-run-intended: true
+
+      - name: Check archive
+        shell: bash
+        env:
+          TAR: ${{ steps.build.outputs.tar }}
+          ZIP: ${{ steps.build.outputs.zip }}
+          SHA: ${{ steps.build.outputs.sha256 }}
+          RUN: ${{ matrix.run }}
+        run: |
+          set -euo pipefail
+          echo "archive: ${TAR}${ZIP} | checksum file: ${SHA}"
+          test -f "${SHA}" && cat "${SHA}"
+          mkdir check && cd check
+          if [ -n "${ZIP}" ]; then /c/Windows/System32/tar.exe -xf "../${ZIP}"; else tar -xzf "../${TAR}"; fi
+          ls -la
+          for f in README.md LICENSE-MIT.MD LICENSE-APACHE.MD; do test -f "$f" || { echo "missing $f"; exit 1; }; done
+          exe=spacecrab; [ -f spacecrab.exe ] && exe=spacecrab.exe
+          test -f "$exe" || { echo "missing binary"; exit 1; }
+          if command -v file >/dev/null; then file "$exe"; fi
+          if [ "${RUN}" = true ]; then
+            mkdir data && echo hello > data/a.txt
+            (cd data && "../$exe") | tee out.txt
+            grep -q "total size" out.txt
+          fi
