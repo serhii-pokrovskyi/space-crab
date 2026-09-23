@@ -6,7 +6,8 @@ impl SizeFormatter {
         let mut size = bytes as f64;
         let mut idx = 0;
 
-        while idx + 1 < UNITS.len() && size >= 1024.0 {
+        // 1023.999 KiB moves up to "1.00 MiB" instead of printing "1024.00 KiB".
+        while idx + 1 < UNITS.len() && (size * 100.0).round() >= 1024.0 * 100.0 {
             size /= 1024.0;
             idx += 1
         }
@@ -45,6 +46,16 @@ mod tests {
         assert_eq!(SizeFormatter::format(5 * 1024 * 1024), "5.00 MiB");
         let bytes = 10 * 1024 * 1024 * 1024 + 512 * 1024 * 1024; // 10.5 GiB
         assert_eq!(SizeFormatter::format(bytes), "10.50 GiB");
+    }
+
+    #[test]
+    fn format_rounds_up_to_next_unit() {
+        assert_eq!(SizeFormatter::format(1024 * 1024 - 1), "1.00 MiB");
+        assert_eq!(SizeFormatter::format(1024 * 1024 * 1024 - 1), "1.00 GiB");
+        assert_eq!(SizeFormatter::format(1024_u64.pow(4) - 1), "1.00 TiB");
+        assert_eq!(SizeFormatter::format(1024_u64.pow(5) - 1), "1.00 PiB");
+        // Rounds to 1023.99, so it stays in KiB.
+        assert_eq!(SizeFormatter::format(1_048_565), "1023.99 KiB");
     }
 
     #[test]
