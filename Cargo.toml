@@ -15,7 +15,4 @@ readme = "README.md"
 
 [workspace.dependencies]
 # CLI and core are released together: keep this equal to workspace.package.version
-spacecrab-core = {
-    path = "core",
-    version = "=0.3.0"
-}
+spacecrab-core = { path = "core",version = "=0.3.0"}
