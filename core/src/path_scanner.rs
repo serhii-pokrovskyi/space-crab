@@ -44,8 +44,8 @@ mod tests {
         fs::File::create(dir.join("sub/bar.log"))?.write_all(b"world")?;
         fs::File::create(dir.join("sub/deeper/baz.md"))?.write_all(b"!")?;
 
-        let scaner = FilesScanner;
-        let mut files = scaner.scan(dir)?;
+        let scanner = FilesScanner;
+        let mut files = scanner.scan(dir)?;
         files.sort();
 
         let expected: Vec<PathBuf> = vec![

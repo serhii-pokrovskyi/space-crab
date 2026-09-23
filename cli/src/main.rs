@@ -14,8 +14,8 @@ fn main() -> io::Result<ExitCode> {
 }
 
 fn run() -> io::Result<ExitCode> {
-    let scaner = FilesScanner;
-    let files = scaner.scan(Path::new("."))?;
+    let scanner = FilesScanner;
+    let files = scanner.scan(Path::new("."))?;
     let mut stdout = io::BufWriter::new(io::stdout().lock());
     let mut total = 0;
     let mut failed = false;
