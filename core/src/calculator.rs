@@ -1,17 +1,6 @@
 use std::{fs, io, path::PathBuf};
 
-pub struct TotalSizeCalculcator;
 pub struct SizeCalculator;
-
-impl TotalSizeCalculcator {
-    pub fn total_size(bufs: &Vec<PathBuf>) -> io::Result<u64> {
-        let mut total = 0;
-        for path in bufs {
-            total += fs::symlink_metadata(path)?.len();
-        }
-        Ok(total)
-    }
-}
 
 impl SizeCalculator {
     pub fn size(buf: PathBuf) -> io::Result<u64> {
@@ -38,10 +27,6 @@ mod tests {
         // A symlink's own size is the length of the path it points to.
         let link_size = "target.bin".len() as u64;
         assert_eq!(SizeCalculator::size(dir.join("link"))?, link_size);
-        assert_eq!(
-            TotalSizeCalculcator::total_size(&vec![dir.join("target.bin"), dir.join("link")])?,
-            1000 + link_size
-        );
         Ok(())
     }
 
@@ -55,10 +40,6 @@ mod tests {
 
         let link_size = "missing".len() as u64;
         assert_eq!(SizeCalculator::size(dir.join("dead"))?, link_size);
-        assert_eq!(
-            TotalSizeCalculcator::total_size(&vec![dir.join("dead")])?,
-            link_size
-        );
         Ok(())
     }
 }
