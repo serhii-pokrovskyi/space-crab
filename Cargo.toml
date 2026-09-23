@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.85"
 repository = "https://github.com/serhii-pokrovskyi/space-crab"
@@ -17,5 +17,5 @@ readme = "README.md"
 # CLI and core are released together: keep this equal to workspace.package.version
 spacecrab-core = {
     path = "core",
-    version = "=0.3"
+    version = "=0.3.0"
 }
