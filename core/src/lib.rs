@@ -1,6 +1,6 @@
-pub mod calculator;
-pub mod formatter;
-pub mod path_scanner;
+mod calculator;
+mod formatter;
+mod path_scanner;
 
 pub use calculator::file_size;
 pub use formatter::format_size;
