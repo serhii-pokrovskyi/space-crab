@@ -1,12 +1,14 @@
 [package]
 name = "spacecrab"
-edition = "2024"
 version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 repository.workspace = true
 license.workspace = true
-description = "Command-line interface for the SpaceCrab scanner"
-keywords = ["cli", "scanner", "files"]
-categories = ["command-line-utilities"]
+readme.workspace = true
+description = "Command-line disk usage analyzer"
+keywords = ["disk-usage", "du", "disk", "cli", "filesystem"]
+categories = ["command-line-utilities", "filesystem"]
 
 [[bin]]
 name = "spacecrab"

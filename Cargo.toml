@@ -7,8 +7,11 @@ members = [
 
 [workspace.package]
 version = "0.2.0"
+edition = "2024"
+rust-version = "1.85"
 repository = "https://github.com/serhii-pokrovskyi/space-crab"
 license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 [workspace.dependencies]
 # CLI and core are released together: keep this equal to workspace.package.version
