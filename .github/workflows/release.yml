@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+# Releases run one at a time, in order. A published release is never cancelled:
+# later ones wait in the queue (up to 100) until the running one finishes.
+concurrency:
+  group: release
+  cancel-in-progress: false
+  queue: max
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish-core:
+    if: startsWith(github.event.release.tag_name, 'v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        run: rustup update stable && rustup default stable
+
+      - name: Check tag matches Cargo version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[] | select(.name == "spacecrab").version')
+          if [ "${TAG#v}" != "$version" ]; then
+            echo "Tag $TAG does not match Cargo version $version"
+            exit 1
+          fi
+
+      - name: Cargo test
+        run: cargo test --workspace --locked
+
+      - name: Publish spacecrab-core
+        run: cargo publish -p spacecrab-core --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+
+  publish-cli:
+    needs: publish-core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        run: rustup update stable && rustup default stable
+
+      - name: Publish spacecrab
+        run: cargo publish -p spacecrab --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
