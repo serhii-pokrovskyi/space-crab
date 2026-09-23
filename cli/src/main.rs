@@ -20,7 +20,7 @@ fn run() -> io::Result<ExitCode> {
     let mut total = 0;
     let mut failed = false;
     for path in files {
-        match SizeCalculator::size(path.clone()) {
+        match SizeCalculator::size(&path) {
             Ok(size) => {
                 total += size;
                 writeln!(stdout, "{} {}", path.display(), SizeFormatter::format(size))?;
