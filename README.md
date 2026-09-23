@@ -1,22 +1,43 @@
 # space-crab
 
-no alpha release yet
-
-# Disk Space Analyzer
+![CI](https://github.com/serhii-pokrovskyi/space-crab/actions/workflows/ci-main.yml/badge.svg?branch=main)
 
 A fast, cross-platform command-line tool written in Rust to analyze disk usage.
 
-## Ci
-![CI](https://github.com/serhii-pokrovskyi/space-crab/actions/workflows/ci-main.yml/badge.svg?branch=main)
+Early development: the CLI lists every file under the current directory with its size, followed by the total.
+
+## Install
+
+```bash
+cargo install spacecrab
+```
+
+Requires Rust 1.85 or newer.
+
+## Usage
+
+Run it in the directory you want to analyze:
+
+```bash
+spacecrab
+```
 
 ## Features
 
 - Recursive directory scanning
-- File size aggregation
+- Per-file sizes and the total size
+- Human-readable sizes (KiB, MiB, GiB, …)
+
+Planned:
+
 - Sorted output
-- Top N results display
-- Human-readable sizes
-- Command-line interface
+- Top N results
+- Command-line arguments (path to scan, options)
+
+## Crates
+
+- [`spacecrab`](https://crates.io/crates/spacecrab): the command-line tool
+- [`spacecrab-core`](https://crates.io/crates/spacecrab-core): the scanning library it is built on
 
 ## Releasing
 
