@@ -83,6 +83,7 @@ name = "spacecrab"
 version = "0.3.0"
 dependencies = [
  "spacecrab-core",
+ "tempfile",
 ]
 
 [[package]]

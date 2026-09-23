@@ -16,3 +16,6 @@ path = "src/main.rs"
 
 [dependencies]
 spacecrab-core.workspace = true
+
+[dev-dependencies]
+tempfile = "3.19.1"
