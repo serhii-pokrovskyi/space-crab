@@ -14,11 +14,19 @@ fn main() -> io::Result<ExitCode> {
 }
 
 fn run() -> io::Result<ExitCode> {
-    let files = scan(Path::new("."))?;
     let mut stdout = io::BufWriter::new(io::stdout().lock());
     let mut total = 0;
     let mut failed = false;
-    for path in files {
+    for entry in scan(Path::new(".")) {
+        let path = match entry {
+            Ok(path) => path,
+            Err(err) => {
+                stdout.flush()?;
+                eprintln!("spacecrab: {}", err);
+                failed = true;
+                continue;
+            }
+        };
         match file_size(&path) {
             Ok(size) => {
                 total += size;
