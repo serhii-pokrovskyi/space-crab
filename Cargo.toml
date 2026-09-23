@@ -9,3 +9,7 @@ members = [
 version = "0.2.0"
 repository = "https://github.com/serhii-pokrovskyi/space-crab"
 license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# CLI and core are released together: keep this equal to workspace.package.version
+spacecrab-core = { path = "core", version = "=0.2.0" }
