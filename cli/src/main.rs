@@ -1,11 +1,5 @@
+use spacecrab_core::{FilesScanner, Scanner, SizeCalculator, SizeFormatter, TotalSizeCalculcator};
 use std::path::Path;
-use spacecrab_core::{
-    Scanner,
-    FilesScanner,
-    SizeCalculator,
-    TotalSizeCalculcator,
-    SizeFormatter
-};
 
 fn main() -> std::io::Result<()> {
     let scaner = FilesScanner;

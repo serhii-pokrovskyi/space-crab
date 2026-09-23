@@ -5,12 +5,12 @@ impl SizeFormatter {
         const UNITS: [&str; 6] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
         let mut size = bytes as f64;
         let mut idx = 0;
-        
+
         while idx + 1 < UNITS.len() && size >= 1024.0 {
             size /= 1024.0;
             idx += 1
         }
-        
+
         if idx == 0 {
             format!("{} {}", bytes, UNITS[idx])
         } else {
