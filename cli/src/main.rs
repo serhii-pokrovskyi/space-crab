@@ -16,7 +16,7 @@ fn main() -> io::Result<ExitCode> {
 fn run() -> io::Result<ExitCode> {
     let scaner = FilesScanner;
     let files = scaner.scan(Path::new("."))?;
-    let mut stdout = io::stdout();
+    let mut stdout = io::BufWriter::new(io::stdout().lock());
     let mut total = 0;
     let mut failed = false;
     for path in files {
@@ -26,12 +26,14 @@ fn run() -> io::Result<ExitCode> {
                 writeln!(stdout, "{} {}", path.display(), SizeFormatter::format(size))?;
             }
             Err(err) => {
+                stdout.flush()?;
                 eprintln!("spacecrab: {}: {}", path.display(), err);
                 failed = true;
             }
         }
     }
     writeln!(stdout, "\ntotal size: {}", SizeFormatter::format(total))?;
+    stdout.flush()?;
     Ok(if failed {
         ExitCode::FAILURE
     } else {
