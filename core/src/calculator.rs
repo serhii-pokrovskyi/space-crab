@@ -1,10 +1,10 @@
-use std::{fs, io, path::PathBuf};
+use std::{fs, io, path::Path};
 
 pub struct SizeCalculator;
 
 impl SizeCalculator {
-    pub fn size(buf: PathBuf) -> io::Result<u64> {
-        let size = fs::symlink_metadata(buf)?.len();
+    pub fn size(path: impl AsRef<Path>) -> io::Result<u64> {
+        let size = fs::symlink_metadata(path)?.len();
         Ok(size)
     }
 }
