@@ -18,9 +18,15 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Publishing uses crates.io Trusted Publishing: no stored token. Each publish job gets a
+  # temporary token from crates.io, revoked when the job ends. crates.io trusts this exact
+  # file name (release.yml) — if it is ever renamed, update both crates' Trusted Publishing settings.
   publish-core:
     if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - name: Set up Rust
@@ -40,23 +46,34 @@ jobs:
       - name: Cargo test
         run: cargo test --workspace --locked
 
+      - name: Get crates.io token
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+
       - name: Publish spacecrab-core
         run: cargo publish -p spacecrab-core --locked
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   publish-cli:
     needs: publish-core
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - name: Set up Rust
         run: rustup update stable && rustup default stable
 
+      - name: Get crates.io token
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+
       - name: Publish spacecrab
         run: cargo publish -p spacecrab --locked
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   # Prebuilt binaries, attached to the GitHub release once both crates are published.
   # Archive names (spacecrab-<target>-vX.Y.Z) match cargo-binstall's default lookup.
