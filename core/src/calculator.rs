@@ -1,12 +1,8 @@
 use std::{fs, io, path::Path};
 
-pub struct SizeCalculator;
-
-impl SizeCalculator {
-    pub fn size(path: impl AsRef<Path>) -> io::Result<u64> {
-        let size = fs::symlink_metadata(path)?.len();
-        Ok(size)
-    }
+pub fn file_size(path: impl AsRef<Path>) -> io::Result<u64> {
+    let size = fs::symlink_metadata(path)?.len();
+    Ok(size)
 }
 
 #[cfg(test)]
@@ -26,7 +22,7 @@ mod tests {
 
         // A symlink's own size is the length of the path it points to.
         let link_size = "target.bin".len() as u64;
-        assert_eq!(SizeCalculator::size(dir.join("link"))?, link_size);
+        assert_eq!(file_size(dir.join("link"))?, link_size);
         Ok(())
     }
 
@@ -39,7 +35,7 @@ mod tests {
         std::os::unix::fs::symlink("missing", dir.join("dead"))?;
 
         let link_size = "missing".len() as u64;
-        assert_eq!(SizeCalculator::size(dir.join("dead"))?, link_size);
+        assert_eq!(file_size(dir.join("dead"))?, link_size);
         Ok(())
     }
 }
