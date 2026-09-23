@@ -15,7 +15,8 @@ impl Scanner for FilesScanner {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.is_dir() {
+            // file_type() does not follow symlinks: a symlinked directory is listed, not entered.
+            if entry.file_type()?.is_dir() {
                 entries.extend(self.scan(&path)?);
             } else {
                 entries.push(path);
@@ -54,6 +55,37 @@ mod tests {
         ];
 
         assert_eq!(files, expected);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_scan_does_not_follow_dir_symlinks() -> io::Result<()> {
+        let tmp = tempdir()?;
+        let dir = tmp.path();
+
+        fs::create_dir(dir.join("real"))?;
+        fs::File::create(dir.join("real/foo.txt"))?.write_all(b"hello")?;
+        std::os::unix::fs::symlink(dir.join("real"), dir.join("link"))?;
+
+        let mut files = FilesScanner.scan(dir)?;
+        files.sort();
+
+        assert_eq!(files, vec![dir.join("link"), dir.join("real/foo.txt")]);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_scan_stops_at_symlink_loop() -> io::Result<()> {
+        let tmp = tempdir()?;
+        let dir = tmp.path();
+
+        std::os::unix::fs::symlink(dir, dir.join("loop"))?;
+
+        let files = FilesScanner.scan(dir)?;
+
+        assert_eq!(files, vec![dir.join("loop")]);
         Ok(())
     }
 }
