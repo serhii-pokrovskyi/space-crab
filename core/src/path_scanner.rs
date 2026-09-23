@@ -1,5 +1,6 @@
 use std::{
-    fs, io, path::{Path, PathBuf}
+    fs, io,
+    path::{Path, PathBuf},
 };
 
 pub trait Scanner {
@@ -27,23 +28,20 @@ impl Scanner for FilesScanner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, io};
     use std::io::Write;
     use std::path::PathBuf;
+    use std::{fs, io};
     use tempfile::tempdir;
-    
+
     #[test]
     fn test_scan_files() -> io::Result<()> {
         let tmp = tempdir()?;
         let dir = tmp.path();
 
-        fs::File::create(dir.join("foo.txt"))?
-            .write_all(b"hello")?;
+        fs::File::create(dir.join("foo.txt"))?.write_all(b"hello")?;
         fs::create_dir_all(dir.join("sub/deeper"))?;
-        fs::File::create(dir.join("sub/bar.log"))?
-            .write_all(b"world")?;
-        fs::File::create(dir.join("sub/deeper/baz.md"))?
-            .write_all(b"!")?;
+        fs::File::create(dir.join("sub/bar.log"))?.write_all(b"world")?;
+        fs::File::create(dir.join("sub/deeper/baz.md"))?.write_all(b"!")?;
 
         let scaner = FilesScanner;
         let mut files = scaner.scan(dir)?;

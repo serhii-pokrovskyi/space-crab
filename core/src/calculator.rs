@@ -1,8 +1,4 @@
-use std::{
-    fs,
-    io,
-    path::PathBuf
-};
+use std::{fs, io, path::PathBuf};
 
 pub struct TotalSizeCalculcator;
 pub struct SizeCalculator;
