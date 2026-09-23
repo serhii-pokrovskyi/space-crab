@@ -63,7 +63,7 @@ mod tests {
         let one_pib = 1024_u64.pow(5);
         assert_eq!(SizeFormatter::format(one_pib), "1.00 PiB");
 
-        let almost_two_pib = one_pib * 2 + 100;
-        assert_eq!(SizeFormatter::format(almost_two_pib), "2.00 PiB");
+        let just_over_two_pib = one_pib * 2 + 100;
+        assert_eq!(SizeFormatter::format(just_over_two_pib), "2.00 PiB");
     }
 }
