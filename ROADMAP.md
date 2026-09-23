@@ -1,5 +1,7 @@
 # Roadmap
 
+1.0 = 0.8 once it stops changing.
+
 ## 0.5
 - `spacecrab [PATH]`, `--help`, `--version`
 - Exit codes: 0 ok, 1 incomplete, 2 usage error
@@ -15,6 +17,3 @@
 
 ## 0.8
 - Document the output format and the core API
-
-## 1.0
-- Use 0.8 daily for two weeks, then tag
