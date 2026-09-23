@@ -7,7 +7,7 @@ impl TotalSizeCalculcator {
     pub fn total_size(bufs: &Vec<PathBuf>) -> io::Result<u64> {
         let mut total = 0;
         for path in bufs {
-            total += fs::metadata(path)?.len();
+            total += fs::symlink_metadata(path)?.len();
         }
         Ok(total)
     }
@@ -15,7 +15,50 @@ impl TotalSizeCalculcator {
 
 impl SizeCalculator {
     pub fn size(buf: PathBuf) -> io::Result<u64> {
-        let size = fs::metadata(buf)?.len();
+        let size = fs::symlink_metadata(buf)?.len();
         Ok(size)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[cfg(unix)]
+    #[test]
+    fn test_size_of_file_symlink_is_link_size() -> io::Result<()> {
+        let tmp = tempdir()?;
+        let dir = tmp.path();
+
+        fs::File::create(dir.join("target.bin"))?.write_all(&[0; 1000])?;
+        std::os::unix::fs::symlink("target.bin", dir.join("link"))?;
+
+        // A symlink's own size is the length of the path it points to.
+        let link_size = "target.bin".len() as u64;
+        assert_eq!(SizeCalculator::size(dir.join("link"))?, link_size);
+        assert_eq!(
+            TotalSizeCalculcator::total_size(&vec![dir.join("target.bin"), dir.join("link")])?,
+            1000 + link_size
+        );
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_size_of_dangling_symlink() -> io::Result<()> {
+        let tmp = tempdir()?;
+        let dir = tmp.path();
+
+        std::os::unix::fs::symlink("missing", dir.join("dead"))?;
+
+        let link_size = "missing".len() as u64;
+        assert_eq!(SizeCalculator::size(dir.join("dead"))?, link_size);
+        assert_eq!(
+            TotalSizeCalculcator::total_size(&vec![dir.join("dead")])?,
+            link_size
+        );
+        Ok(())
     }
 }
