@@ -1,5 +1,8 @@
+#![deny(clippy::print_stderr, clippy::print_stdout)]
+
 use spacecrab_core::{file_size, format_size, scan};
 use std::{
+    fmt,
     io::{self, Write},
     path::Path,
     process::ExitCode,
@@ -7,7 +10,6 @@ use std::{
 
 fn main() -> io::Result<ExitCode> {
     match run() {
-        // The reader went away (e.g. `spacecrab | head`): nothing left to print to.
         Err(err) if err.kind() == io::ErrorKind::BrokenPipe => Ok(ExitCode::SUCCESS),
         result => result,
     }
@@ -22,7 +24,7 @@ fn run() -> io::Result<ExitCode> {
             Ok(path) => path,
             Err(err) => {
                 stdout.flush()?;
-                eprintln!("spacecrab: {}", err);
+                print_error(err);
                 failed = true;
                 continue;
             }
@@ -34,7 +36,7 @@ fn run() -> io::Result<ExitCode> {
             }
             Err(err) => {
                 stdout.flush()?;
-                eprintln!("spacecrab: {}: {}", path.display(), err);
+                print_error(format_args!("{}: {}", path.display(), err));
                 failed = true;
             }
         }
@@ -46,4 +48,8 @@ fn run() -> io::Result<ExitCode> {
     } else {
         ExitCode::SUCCESS
     })
+}
+
+fn print_error(msg: impl fmt::Display) {
+    let _ = writeln!(io::stderr(), "spacecrab: {}", msg);
 }

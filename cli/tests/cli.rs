@@ -84,6 +84,36 @@ fn closed_stdout_exits_cleanly() -> io::Result<()> {
 
 #[cfg(unix)]
 #[test]
+fn closed_stderr_does_not_panic() -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::Stdio;
+
+    let tmp = tempdir()?;
+    let dir = tmp.path();
+
+    fs::create_dir(dir.join("locked"))?;
+    fs::set_permissions(dir.join("locked"), fs::Permissions::from_mode(0o000))?;
+
+    let child = Command::new(env!("CARGO_BIN_EXE_spacecrab"))
+        .current_dir(dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn();
+    let output = child.and_then(|mut child| {
+        // Close the read end before the CLI reports the error, like `spacecrab 2>&1 | head -0`.
+        drop(child.stderr.take());
+        child.wait_with_output()
+    });
+    fs::set_permissions(dir.join("locked"), fs::Permissions::from_mode(0o755))?;
+    let output = output?;
+
+    // 1 because the scan was incomplete; a panic would exit with 101.
+    assert_eq!(output.status.code(), Some(1));
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
 fn unreadable_dir_is_reported_and_scan_continues() -> io::Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
