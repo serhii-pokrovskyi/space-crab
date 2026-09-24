@@ -82,6 +82,58 @@ fn closed_stdout_exits_cleanly() -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(target_os = "linux")]
+#[test]
+fn output_write_error_is_reported() -> io::Result<()> {
+    let tmp = tempdir()?;
+    fs::write(tmp.path().join("a.txt"), [0; 1000])?;
+
+    // Every write to /dev/full fails with ENOSPC, like a full disk.
+    let full = fs::OpenOptions::new().write(true).open("/dev/full")?;
+    let output = Command::new(env!("CARGO_BIN_EXE_spacecrab"))
+        .current_dir(tmp.path())
+        .stdout(full)
+        .output()?;
+
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(
+        stderr.starts_with("spacecrab: error writing output: "),
+        "{stderr}"
+    );
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn closed_stderr_does_not_panic() -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::Stdio;
+
+    let tmp = tempdir()?;
+    let dir = tmp.path();
+
+    fs::create_dir(dir.join("locked"))?;
+    fs::set_permissions(dir.join("locked"), fs::Permissions::from_mode(0o000))?;
+
+    let child = Command::new(env!("CARGO_BIN_EXE_spacecrab"))
+        .current_dir(dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn();
+    let output = child.and_then(|mut child| {
+        // Close the read end before the CLI reports the error, like `spacecrab 2>&1 | head -0`.
+        drop(child.stderr.take());
+        child.wait_with_output()
+    });
+    fs::set_permissions(dir.join("locked"), fs::Permissions::from_mode(0o755))?;
+    let output = output?;
+
+    // 1 because the scan was incomplete; a panic would exit with 101.
+    assert_eq!(output.status.code(), Some(1));
+    Ok(())
+}
+
 #[cfg(unix)]
 #[test]
 fn unreadable_dir_is_reported_and_scan_continues() -> io::Result<()> {
