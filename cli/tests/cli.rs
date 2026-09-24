@@ -82,6 +82,28 @@ fn closed_stdout_exits_cleanly() -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(target_os = "linux")]
+#[test]
+fn output_write_error_is_reported() -> io::Result<()> {
+    let tmp = tempdir()?;
+    fs::write(tmp.path().join("a.txt"), [0; 1000])?;
+
+    // Every write to /dev/full fails with ENOSPC, like a full disk.
+    let full = fs::OpenOptions::new().write(true).open("/dev/full")?;
+    let output = Command::new(env!("CARGO_BIN_EXE_spacecrab"))
+        .current_dir(tmp.path())
+        .stdout(full)
+        .output()?;
+
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(
+        stderr.starts_with("spacecrab: error writing output: "),
+        "{stderr}"
+    );
+    Ok(())
+}
+
 #[cfg(unix)]
 #[test]
 fn closed_stderr_does_not_panic() -> io::Result<()> {

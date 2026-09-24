@@ -8,10 +8,14 @@ use std::{
     process::ExitCode,
 };
 
-fn main() -> io::Result<ExitCode> {
+fn main() -> ExitCode {
     match run() {
-        Err(err) if err.kind() == io::ErrorKind::BrokenPipe => Ok(ExitCode::SUCCESS),
-        result => result,
+        Ok(code) => code,
+        Err(err) if err.kind() == io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
+        Err(err) => {
+            print_error(format_args!("error writing output: {}", err));
+            ExitCode::FAILURE
+        }
     }
 }
 
