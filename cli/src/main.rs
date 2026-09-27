@@ -1,15 +1,33 @@
 #![deny(clippy::print_stderr, clippy::print_stdout)]
 
+use clap::Parser;
 use spacecrab_core::{file_size, format_size, scan};
 use std::{
-    fmt,
+    fmt, fs,
     io::{self, Write},
-    path::Path,
+    path::{Path, PathBuf},
     process::ExitCode,
 };
 
+const AFTER_HELP: &str = "\
+Sizes are file lengths (apparent size), not the space used on disk.
+
+Exit status:
+  0  complete
+  1  results incomplete, or the report couldn't be written
+  2  usage error";
+
+#[derive(Parser)]
+#[command(version, about, after_help = AFTER_HELP)]
+struct Args {
+    /// Directory to analyze
+    #[arg(default_value = ".")]
+    path: PathBuf,
+}
+
 fn main() -> ExitCode {
-    match run() {
+    let args = Args::parse();
+    match run(&args.path) {
         Ok(code) => code,
         Err(err) if err.kind() == io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
         Err(err) => {
@@ -19,11 +37,15 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> io::Result<ExitCode> {
+fn run(root: &Path) -> io::Result<ExitCode> {
+    if let Err(err) = fs::read_dir(root) {
+        print_error(format_args!("{}: {}", root.display(), err));
+        return Ok(ExitCode::FAILURE);
+    }
     let mut stdout = io::BufWriter::new(io::stdout().lock());
     let mut total = 0;
     let mut failed = false;
-    for entry in scan(Path::new(".")) {
+    for entry in scan(root) {
         let path = match entry {
             Ok(path) => path,
             Err(err) => {

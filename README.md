@@ -4,7 +4,7 @@
 
 A fast, cross-platform command-line tool written in Rust to analyze disk usage.
 
-Early development: the CLI lists every file under the current directory with its size, followed by the total.
+Early development: the CLI lists every file under a directory with its size, followed by the total.
 
 ## Install
 
@@ -32,11 +32,11 @@ Requires Rust 1.85 or newer.
 
 ## Usage
 
-Run it in the directory you want to analyze:
-
 ```bash
-spacecrab
+spacecrab [PATH]
 ```
+
+PATH is the directory to analyze. It defaults to the current directory.
 
 ## Features
 
