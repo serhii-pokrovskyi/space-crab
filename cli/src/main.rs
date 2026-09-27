@@ -9,8 +9,16 @@ use std::{
     process::ExitCode,
 };
 
+const AFTER_HELP: &str = "\
+Sizes are file lengths (apparent size), not the space used on disk.
+
+Exit status:
+  0  complete
+  1  results incomplete, or the report couldn't be written
+  2  usage error";
+
 #[derive(Parser)]
-#[command(version, about)]
+#[command(version, about, after_help = AFTER_HELP)]
 struct Args {
     /// Directory to analyze
     #[arg(default_value = ".")]

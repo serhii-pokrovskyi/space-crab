@@ -1,4 +1,5 @@
 mod args;
+mod help;
 mod report;
 #[cfg(unix)]
 mod scan_errors;
