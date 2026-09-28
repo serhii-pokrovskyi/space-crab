@@ -5,13 +5,13 @@ pub fn file_size(path: impl AsRef<Path>) -> io::Result<u64> {
     Ok(size)
 }
 
-#[cfg(test)]
+// Every test here uses unix symlinks.
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::tempdir;
 
-    #[cfg(unix)]
     #[test]
     fn test_size_of_file_symlink_is_link_size() -> io::Result<()> {
         let tmp = tempdir()?;
@@ -26,7 +26,6 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(unix)]
     #[test]
     fn test_size_of_dangling_symlink() -> io::Result<()> {
         let tmp = tempdir()?;

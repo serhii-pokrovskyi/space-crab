@@ -1,6 +1,7 @@
 # space-crab
 
 ![CI](https://github.com/serhii-pokrovskyi/space-crab/actions/workflows/ci-main.yml/badge.svg?branch=main)
+![Release](https://github.com/serhii-pokrovskyi/space-crab/actions/workflows/release.yml/badge.svg?event=release)
 
 A fast, cross-platform command-line tool written in Rust to analyze disk usage.
 

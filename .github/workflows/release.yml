@@ -18,17 +18,28 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Publishing uses crates.io Trusted Publishing: no stored token. Each publish job gets a
-  # temporary token from crates.io, revoked when the job ends. crates.io trusts this exact
-  # file name (release.yml) — if it is ever renamed, update both crates' Trusted Publishing settings.
   publish-core:
     if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history, so the tagged commit can be compared with main
+
+      - name: Check tagged commit is on main
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "Tag $TAG points to a commit that is not on main"
+            exit 1
+          fi
+
       - name: Set up Rust
         run: rustup update stable && rustup default stable
 
@@ -48,7 +59,7 @@ jobs:
 
       - name: Get crates.io token
         id: auth
-        uses: rust-lang/crates-io-auth-action@v1
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
 
       - name: Publish spacecrab-core
         run: cargo publish -p spacecrab-core --locked
@@ -58,17 +69,19 @@ jobs:
   publish-cli:
     needs: publish-core
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Rust
         run: rustup update stable && rustup default stable
 
       - name: Get crates.io token
         id: auth
-        uses: rust-lang/crates-io-auth-action@v1
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
 
       - name: Publish spacecrab
         run: cargo publish -p spacecrab --locked
@@ -98,14 +111,16 @@ jobs:
           - target: aarch64-pc-windows-msvc
             os: windows-11-arm
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
+          toolchain: stable
           targets: ${{ matrix.target }}
 
       - name: Build and upload spacecrab
-        uses: taiki-e/upload-rust-binary-action@v1
+        uses: taiki-e/upload-rust-binary-action@f0d45ae91ee7b8ee928de7a9d04d893a08bcbec6 # v1.30.2
         with:
           bin: spacecrab
           target: ${{ matrix.target }}
