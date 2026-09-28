@@ -41,6 +41,10 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
 
+      # Packs and builds both crates the way `cargo publish` does, without uploading.
+      - name: Package
+        run: cargo package --workspace --locked
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:
