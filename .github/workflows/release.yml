@@ -18,13 +18,11 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Publishing uses crates.io Trusted Publishing: no stored token. Each publish job gets a
-  # temporary token from crates.io, revoked when the job ends. crates.io trusts this exact
-  # file name (release.yml) — if it is ever renamed, update both crates' Trusted Publishing settings.
   publish-core:
     if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment: release
     permissions:
       contents: read
       id-token: write
@@ -72,6 +70,7 @@ jobs:
     needs: publish-core
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment: release
     permissions:
       contents: read
       id-token: write
