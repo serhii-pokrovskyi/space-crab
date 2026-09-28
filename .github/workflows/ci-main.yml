@@ -15,6 +15,7 @@ env:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - name: Set up Rust
@@ -46,6 +47,7 @@ jobs:
 
   test:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -74,6 +76,7 @@ jobs:
 
   msrv:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - name: Set up minimum supported Rust (rust-version from Cargo.toml)
@@ -90,6 +93,7 @@ jobs:
     if: always()
     needs: [lint, test, msrv]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Fail if any job failed or was cancelled
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
