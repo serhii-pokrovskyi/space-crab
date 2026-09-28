@@ -33,9 +33,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
 
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
-
       - name: Docs
         run: cargo doc --workspace --no-deps --locked
         env:
@@ -70,6 +67,9 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Test
         run: cargo test --workspace --all-features --locked
