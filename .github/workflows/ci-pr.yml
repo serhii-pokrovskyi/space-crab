@@ -10,6 +10,9 @@ on:
       - reopened
       - ready_for_review
 
+permissions:
+  contents: read
+
 # A new push to the PR cancels its outdated run.
 concurrency:
   group: ci-pr-${{ github.ref }}
