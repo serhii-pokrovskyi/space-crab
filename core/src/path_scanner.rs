@@ -1,9 +1,10 @@
+use crate::Error;
 use std::{
-    fs, io,
+    fs,
     path::{Path, PathBuf},
 };
 
-pub fn scan(dir: &Path) -> impl Iterator<Item = io::Result<PathBuf>> + use<> {
+pub fn scan(dir: &Path) -> impl Iterator<Item = Result<PathBuf, Error>> + use<> {
     Scan {
         dirs: vec![dir.to_path_buf()],
         current: None,
@@ -18,7 +19,7 @@ struct Scan {
 }
 
 impl Iterator for Scan {
-    type Item = io::Result<PathBuf>;
+    type Item = Result<PathBuf, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -26,13 +27,13 @@ impl Iterator for Scan {
                 let dir = self.dirs.pop()?;
                 match fs::read_dir(&dir) {
                     Ok(entries) => self.current = Some((dir, entries)),
-                    Err(err) => return Some(Err(with_path(&dir, err))),
+                    Err(err) => return Some(Err(Error::new(dir, err))),
                 }
                 continue;
             };
             let entry = match entries.next() {
                 Some(Ok(entry)) => entry,
-                Some(Err(err)) => return Some(Err(with_path(dir, err))),
+                Some(Err(err)) => return Some(Err(Error::new(dir.as_path(), err))),
                 None => {
                     self.current = None;
                     continue;
@@ -43,15 +44,10 @@ impl Iterator for Scan {
                 // file_type() does not follow symlinks: a symlinked directory is listed, not entered.
                 Ok(file_type) if file_type.is_dir() => self.dirs.push(path),
                 Ok(_) => return Some(Ok(path)),
-                Err(err) => return Some(Err(with_path(&path, err))),
+                Err(err) => return Some(Err(Error::new(path, err))),
             }
         }
     }
-}
-
-// io::Error does not say which path failed, so put it in the message.
-fn with_path(path: &Path, err: io::Error) -> io::Error {
-    io::Error::new(err.kind(), format!("{}: {}", path.display(), err))
 }
 
 #[cfg(test)]
@@ -72,7 +68,7 @@ mod tests {
         fs::File::create(dir.join("sub/bar.log"))?.write_all(b"world")?;
         fs::File::create(dir.join("sub/deeper/baz.md"))?.write_all(b"!")?;
 
-        let mut files = scan(dir).collect::<io::Result<Vec<_>>>()?;
+        let mut files = scan(dir).collect::<Result<Vec<_>, _>>()?;
         files.sort();
 
         let expected: Vec<PathBuf> = vec![
@@ -95,7 +91,7 @@ mod tests {
         fs::File::create(dir.join("real/foo.txt"))?.write_all(b"hello")?;
         std::os::unix::fs::symlink(dir.join("real"), dir.join("link"))?;
 
-        let mut files = scan(dir).collect::<io::Result<Vec<_>>>()?;
+        let mut files = scan(dir).collect::<Result<Vec<_>, _>>()?;
         files.sort();
 
         assert_eq!(files, vec![dir.join("link"), dir.join("real/foo.txt")]);
@@ -110,7 +106,7 @@ mod tests {
 
         std::os::unix::fs::symlink(dir, dir.join("loop"))?;
 
-        let files = scan(dir).collect::<io::Result<Vec<_>>>()?;
+        let files = scan(dir).collect::<Result<Vec<_>, _>>()?;
 
         assert_eq!(files, vec![dir.join("loop")]);
         Ok(())
@@ -141,7 +137,9 @@ mod tests {
 
         assert_eq!(files, vec![dir.join("foo.txt")]);
         assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].path(), dir.join("locked"));
         assert_eq!(errors[0].kind(), io::ErrorKind::PermissionDenied);
+        assert!(errors[0].io_error().raw_os_error().is_some());
         let prefix = format!("{}: ", dir.join("locked").display());
         assert!(errors[0].to_string().starts_with(&prefix));
         Ok(())
