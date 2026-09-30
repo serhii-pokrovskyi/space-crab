@@ -19,13 +19,14 @@ env:
 
 jobs:
   publish-core:
+    # Only `v...` tags count; any other release is ignored.
     if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: release
     permissions:
       contents: read
-      id-token: write
+      id-token: write # for trusted publishing, so no crates.io token is stored in the repo
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -54,6 +55,7 @@ jobs:
             exit 1
           fi
 
+      # One last test run before anything goes out.
       - name: Cargo test
         run: cargo test --workspace --locked
 
@@ -66,6 +68,9 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
+  # The CLI depends on core, so core has to be on crates.io first.
+  # If this job fails, use "Re-run failed jobs": core is already out, and crates.io
+  # won't take the same version twice.
   publish-cli:
     needs: publish-core
     runs-on: ubuntu-latest
@@ -73,7 +78,7 @@ jobs:
     environment: release
     permissions:
       contents: read
-      id-token: write
+      id-token: write # for trusted publishing, so no crates.io token is stored in the repo
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Rust
@@ -98,12 +103,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # musl gives static Linux binaries that run on pretty much any distro.
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
           - target: aarch64-unknown-linux-musl
             os: ubuntu-24.04-arm
           - target: aarch64-apple-darwin
             os: macos-latest
+          # macos-latest is Apple Silicon, so the Intel build is cross-compiled.
           - target: x86_64-apple-darwin
             os: macos-latest
           - target: x86_64-pc-windows-msvc
@@ -125,7 +132,7 @@ jobs:
           bin: spacecrab
           target: ${{ matrix.target }}
           archive: $bin-$target-$tag
-          include: README.md,LICENSE-MIT.MD,LICENSE-APACHE.MD
-          checksum: sha256
+          include: README.md,LICENSE-MIT.MD,LICENSE-APACHE.MD # packed into every archive
+          checksum: sha256 # adds a .sha256 file next to each archive
           build-tool: cargo
           locked: true
