@@ -68,7 +68,6 @@ fn read_children(dir: &Path, depth: usize) -> Vec<Result<Entry, Error>> {
 }
 
 // Reads the whole listing so the directory is closed before any subdirectory is opened.
-// Stops at the first listing error: older Rust on Windows repeats that error forever.
 fn collect_children(
     dir: &Path,
     depth: usize,
