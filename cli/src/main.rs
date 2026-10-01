@@ -1,7 +1,7 @@
 #![deny(clippy::print_stderr, clippy::print_stdout)]
 
 use clap::Parser;
-use spacecrab_core::{file_size, format_size, scan};
+use spacecrab_core::{format_size, scan};
 use std::{
     fmt, fs,
     io::{self, Write},
@@ -46,8 +46,8 @@ fn run(root: &Path) -> io::Result<ExitCode> {
     let mut total = 0;
     let mut failed = false;
     for entry in scan(root) {
-        let path = match entry {
-            Ok(path) => path,
+        let entry = match entry {
+            Ok(entry) => entry,
             Err(err) => {
                 stdout.flush()?;
                 print_error(err);
@@ -55,17 +55,12 @@ fn run(root: &Path) -> io::Result<ExitCode> {
                 continue;
             }
         };
-        match file_size(&path) {
-            Ok(size) => {
-                total += size;
-                writeln!(stdout, "{} {}", path.display(), format_size(size))?;
-            }
-            Err(err) => {
-                stdout.flush()?;
-                print_error(format_args!("{}: {}", path.display(), err));
-                failed = true;
-            }
+        if entry.is_dir() {
+            continue;
         }
+        let size = entry.apparent_size();
+        total += size;
+        writeln!(stdout, "{} {}", entry.path().display(), format_size(size))?;
     }
     writeln!(stdout, "\ntotal size: {}", format_size(total))?;
     stdout.flush()?;
