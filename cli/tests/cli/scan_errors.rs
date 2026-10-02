@@ -18,7 +18,7 @@ fn size_error_is_reported_and_scan_continues() -> io::Result<()> {
     assert_eq!(output.status.code(), Some(1));
     let stdout = String::from_utf8(output.stdout).unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
-    assert_eq!(stdout, "./a.txt 1000 B\n\ntotal size: 1000 B\n");
+    assert_eq!(stdout, "     1000 B\t./a.txt\n     1000 B\t.\n");
     assert!(stderr.starts_with("spacecrab: ./locked/b.txt: "));
     Ok(())
 }
@@ -37,7 +37,7 @@ fn unreadable_dir_is_reported_and_scan_continues() -> io::Result<()> {
     assert_eq!(output.status.code(), Some(1));
     let stdout = String::from_utf8(output.stdout).unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
-    assert_eq!(stdout, "./a.txt 1000 B\n\ntotal size: 1000 B\n");
+    assert_eq!(stdout, "     1000 B\t./a.txt\n     1000 B\t.\n");
     assert!(stderr.starts_with("spacecrab: ./locked: "));
     Ok(())
 }
