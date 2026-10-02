@@ -63,15 +63,21 @@ fn run(root: &Path) -> io::Result<ExitCode> {
         }
         let size = entry.apparent_size();
         total += size;
-        writeln!(stdout, "{} {}", entry.path().display(), format_size(size))?;
+        write_line(&mut stdout, size, entry.path())?;
     }
-    writeln!(stdout, "\ntotal size: {}", format_size(total))?;
+    write_line(&mut stdout, total, root)?;
     stdout.flush()?;
     Ok(if failed {
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
     })
+}
+
+// Tab, not space: paths can have spaces too. 11 is the width of "1023.99 KiB",
+// so the paths line up.
+fn write_line(out: &mut impl Write, size: u64, path: &Path) -> io::Result<()> {
+    writeln!(out, "{:>11}\t{}", format_size(size), path.display())
 }
 
 fn print_error(msg: impl fmt::Display) {

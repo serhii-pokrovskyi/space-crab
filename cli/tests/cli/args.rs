@@ -17,7 +17,11 @@ fn path_argument_is_scanned() -> io::Result<()> {
     let a = target.join("a.txt");
     assert_eq!(
         stdout,
-        format!("{} 1000 B\n\ntotal size: 1000 B\n", a.display())
+        format!(
+            "     1000 B\t{}\n     1000 B\t{}\n",
+            a.display(),
+            target.display()
+        )
     );
     Ok(())
 }
@@ -52,7 +56,7 @@ fn double_dash_ends_options() -> io::Result<()> {
     let a = Path::new("-n").join("a.txt");
     assert_eq!(
         stdout,
-        format!("{} 1000 B\n\ntotal size: 1000 B\n", a.display())
+        format!("     1000 B\t{}\n     1000 B\t-n\n", a.display())
     );
     Ok(())
 }
@@ -112,6 +116,6 @@ fn symlink_path_to_dir_is_scanned() -> io::Result<()> {
 
     assert_eq!(output.status.code(), Some(0));
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert_eq!(stdout, "link/a.txt 1000 B\n\ntotal size: 1000 B\n");
+    assert_eq!(stdout, "     1000 B\tlink/a.txt\n     1000 B\tlink\n");
     Ok(())
 }
