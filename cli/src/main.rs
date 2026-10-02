@@ -1,7 +1,10 @@
 #![deny(clippy::print_stderr, clippy::print_stdout)]
 
+mod formatter;
+
 use clap::Parser;
-use spacecrab_core::{format_size, scan};
+use formatter::format_size;
+use spacecrab_core::scan;
 use std::{
     fmt, fs,
     io::{self, Write},

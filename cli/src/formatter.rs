@@ -62,4 +62,9 @@ mod tests {
         let just_over_two_pib = one_pib * 2 + 100;
         assert_eq!(format_size(just_over_two_pib), "2.00 PiB");
     }
+
+    #[test]
+    fn format_max_value_stays_in_pib() {
+        assert_eq!(format_size(u64::MAX), "16384.00 PiB");
+    }
 }
