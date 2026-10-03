@@ -1,6 +1,8 @@
 mod args;
 mod bytes;
 mod disk_size;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+mod du;
 mod hard_links;
 mod help;
 mod report;

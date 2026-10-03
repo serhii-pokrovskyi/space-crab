@@ -29,11 +29,10 @@ fn hard_links_count_once() -> io::Result<()> {
     let big = size_of(dir.join("big"));
     assert_eq!(sizes(&output.stdout), (vec![0, 0, big], size_of(dir) + big));
 
+    // With -A the folder itself counts 0, like du -b.
     let output = spacecrab(dir).args(["-A", "-b"]).output()?;
     assert!(output.status.success());
-    let dir_len = fs::symlink_metadata(dir)?.len();
-    let expected = (vec![0, 0, 10 << 20], dir_len + (10 << 20));
-    assert_eq!(sizes(&output.stdout), expected);
+    assert_eq!(sizes(&output.stdout), (vec![0, 0, 10 << 20], 10 << 20));
     Ok(())
 }
 

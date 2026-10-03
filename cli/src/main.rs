@@ -4,7 +4,7 @@ mod formatter;
 
 use clap::Parser;
 use formatter::format_size;
-use spacecrab_core::scan;
+use spacecrab_core::{EntryKind, scan};
 use std::{
     collections::HashSet,
     fmt,
@@ -85,9 +85,14 @@ fn run(root: &Path, bytes: bool, apparent: bool) -> io::Result<ExitCode> {
         };
         close(&mut open, entry.depth(), &mut children, &mut total);
         // No disk size on Windows, so it's the file length there either way.
+        // Only files and symlinks have a real length; a folder's st_size is
+        // filesystem trivia, so like du we count it as 0.
         let mut size = match entry.disk_size() {
             Some(size) if !apparent => size,
-            _ => entry.apparent_size(),
+            _ if matches!(entry.kind(), EntryKind::File | EntryKind::Symlink) => {
+                entry.apparent_size()
+            }
+            _ => 0,
         };
         // A file with several hard links only counts the first time we meet it.
         let linked = !entry.is_dir() && entry.link_count().is_some_and(|n| n > 1);
