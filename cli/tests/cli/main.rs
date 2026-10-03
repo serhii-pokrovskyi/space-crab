@@ -1,6 +1,8 @@
 mod args;
 mod bytes;
 mod disk_size;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+mod du;
 mod hard_links;
 mod help;
 mod report;
@@ -21,8 +23,9 @@ fn spacecrab(dir: &Path) -> Command {
 }
 
 // What spacecrab counts for one entry by itself, without anything inside it:
-// space on disk, or the file length on Windows. Every expected size comes from
-// here, so if the way sizes are measured changes, only this needs to follow.
+// space on disk, or the file length on Windows, where folders count 0. Every
+// expected size comes from here, so if the way sizes are measured changes,
+// only this needs to follow.
 #[cfg(unix)]
 fn size_of(path: impl AsRef<Path>) -> u64 {
     use std::os::unix::fs::MetadataExt;
@@ -31,7 +34,13 @@ fn size_of(path: impl AsRef<Path>) -> u64 {
 
 #[cfg(not(unix))]
 fn size_of(path: impl AsRef<Path>) -> u64 {
-    fs::symlink_metadata(path).unwrap().len()
+    let metadata = fs::symlink_metadata(path).unwrap();
+    // Like du -b, only files and symlinks have a length.
+    if metadata.is_file() || metadata.is_symlink() {
+        metadata.len()
+    } else {
+        0
+    }
 }
 
 // Sets a directory's mode and restores 0o755 on drop, so the temp dir
