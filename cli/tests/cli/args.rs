@@ -1,4 +1,4 @@
-use super::spacecrab;
+use super::{size_of, spacecrab};
 use std::{fs, io, path::Path};
 use tempfile::tempdir;
 
@@ -10,16 +10,18 @@ fn path_argument_is_scanned() -> io::Result<()> {
     fs::write(target.join("a.txt"), [0; 1000])?;
     fs::write(tmp.path().join("outside.txt"), [0; 5])?;
 
-    let output = spacecrab(tmp.path()).arg(&target).output()?;
+    let output = spacecrab(tmp.path()).arg("-b").arg(&target).output()?;
 
     assert_eq!(output.status.code(), Some(0));
     let stdout = String::from_utf8(output.stdout).unwrap();
     let a = target.join("a.txt");
+    let a_size = size_of(&a);
     assert_eq!(
         stdout,
         format!(
-            "     1000 B\t{}\n     1000 B\t{}\n",
+            "{a_size}\t{}\n{}\t{}\n",
             a.display(),
+            size_of(&target) + a_size,
             target.display()
         )
     );
@@ -49,14 +51,16 @@ fn double_dash_ends_options() -> io::Result<()> {
     fs::create_dir(tmp.path().join("-n"))?;
     fs::write(tmp.path().join("-n").join("a.txt"), [0; 1000])?;
 
-    let output = spacecrab(tmp.path()).args(["--", "-n"]).output()?;
+    let output = spacecrab(tmp.path()).args(["-b", "--", "-n"]).output()?;
 
     assert_eq!(output.status.code(), Some(0));
     let stdout = String::from_utf8(output.stdout).unwrap();
     let a = Path::new("-n").join("a.txt");
+    let a_size = size_of(tmp.path().join(&a));
+    let n_size = size_of(tmp.path().join("-n"));
     assert_eq!(
         stdout,
-        format!("     1000 B\t{}\n     1000 B\t-n\n", a.display())
+        format!("{a_size}\t{}\n{}\t-n\n", a.display(), n_size + a_size)
     );
     Ok(())
 }
@@ -75,16 +79,17 @@ fn missing_path_exits_1_without_output() -> io::Result<()> {
 }
 
 #[test]
-fn file_path_exits_1_without_output() -> io::Result<()> {
+fn file_path_prints_only_its_own_line() -> io::Result<()> {
     let tmp = tempdir()?;
     fs::write(tmp.path().join("a.txt"), [0; 1000])?;
 
-    let output = spacecrab(tmp.path()).arg("a.txt").output()?;
+    let output = spacecrab(tmp.path()).args(["-b", "a.txt"]).output()?;
 
-    assert_eq!(output.status.code(), Some(1));
-    assert_eq!(output.stdout, b"");
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.starts_with("spacecrab: a.txt: "), "{stderr}");
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(output.stderr, b"");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let size = size_of(tmp.path().join("a.txt"));
+    assert_eq!(stdout, format!("{size}\ta.txt\n"));
     Ok(())
 }
 
@@ -112,10 +117,14 @@ fn symlink_path_to_dir_is_scanned() -> io::Result<()> {
     fs::write(tmp.path().join("real/a.txt"), [0; 1000])?;
     std::os::unix::fs::symlink("real", tmp.path().join("link"))?;
 
-    let output = spacecrab(tmp.path()).arg("link").output()?;
+    let output = spacecrab(tmp.path()).args(["-b", "link"]).output()?;
 
     assert_eq!(output.status.code(), Some(0));
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert_eq!(stdout, "     1000 B\tlink/a.txt\n     1000 B\tlink\n");
+    // The root symlink is followed, so the root is the real folder's size.
+    let real = tmp.path().join("real");
+    let a_size = size_of(real.join("a.txt"));
+    let total = size_of(&real) + a_size;
+    assert_eq!(stdout, format!("{a_size}\tlink/a.txt\n{total}\tlink\n"));
     Ok(())
 }
