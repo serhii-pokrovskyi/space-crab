@@ -1,5 +1,8 @@
-use super::spacecrab;
-use std::{fs, io, path::Path};
+use super::{size_of, spacecrab};
+use std::{
+    fs, io,
+    path::{MAIN_SEPARATOR, Path},
+};
 use tempfile::tempdir;
 
 #[test]
@@ -46,26 +49,23 @@ fn bytes_are_exact_and_root_is_the_sum() -> io::Result<()> {
     let output = spacecrab(dir).arg("-b").output()?;
     assert!(output.status.success());
 
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let mut lines: Vec<&str> = stdout.lines().collect();
-    let root = lines.pop().unwrap();
-    lines.sort();
-
+    let s = |name: &str| size_of(dir.join(name));
     let a = Path::new(".").join("a");
     let b = Path::new(".").join("b");
-    let c = Path::new(".").join("sub").join("c");
-    let d = Path::new(".").join("sub").join("d");
-    // Sorted as text, so 1048565 comes before 1536.
+    let sub = Path::new(".").join("sub");
+    let sub_size = s("sub") + s("sub/c") + s("sub/d");
+    // The root is its own size plus every line above it.
+    let root_size = size_of(dir) + s("a") + s("b") + sub_size;
     assert_eq!(
-        lines,
-        [
-            format!("0\t{}", a.display()),
-            format!("1000\t{}", b.display()),
-            format!("1048565\t{}", d.display()),
-            format!("1536\t{}", c.display()),
-        ]
+        String::from_utf8(output.stdout).unwrap(),
+        format!(
+            "{}\t{}\n{}\t{}\n{sub_size}\t{}{MAIN_SEPARATOR}\n{root_size}\t.\n",
+            s("a"),
+            a.display(),
+            s("b"),
+            b.display(),
+            sub.display()
+        )
     );
-    // 0 + 1000 + 1536 + 1048565. Folders don't add their own size yet.
-    assert_eq!(root, "1051101\t.");
     Ok(())
 }

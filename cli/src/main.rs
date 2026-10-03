@@ -6,9 +6,9 @@ use clap::Parser;
 use formatter::format_size;
 use spacecrab_core::scan;
 use std::{
-    fmt, fs,
+    fmt,
     io::{self, Write},
-    path::{Path, PathBuf},
+    path::{MAIN_SEPARATOR_STR, Path, PathBuf},
     process::ExitCode,
 };
 
@@ -23,7 +23,7 @@ Exit status:
 #[derive(Parser)]
 #[command(version, about, after_help = AFTER_HELP)]
 struct Args {
-    /// Directory to analyze
+    /// File or directory to analyze
     #[arg(default_value = ".")]
     path: PathBuf,
 
@@ -44,32 +44,72 @@ fn main() -> ExitCode {
     }
 }
 
+// A direct child of the root, with everything under it added up.
+struct Child {
+    size: u64,
+    path: PathBuf,
+    is_dir: bool,
+}
+
 fn run(root: &Path, bytes: bool) -> io::Result<ExitCode> {
-    if let Err(err) = fs::read_dir(root) {
-        print_error(format_args!("{}: {}", root.display(), err));
-        return Ok(ExitCode::FAILURE);
-    }
-    let mut stdout = io::BufWriter::new(io::stdout().lock());
+    // Totals of the entries on the current path, root first.
+    let mut open: Vec<u64> = Vec::new();
+    let mut children: Vec<Child> = Vec::new();
+    let mut unread = Vec::new();
     let mut total = 0;
     let mut failed = false;
+    let mut root_failed = false;
     for entry in scan(root) {
         let entry = match entry {
             Ok(entry) => entry,
             Err(err) => {
-                stdout.flush()?;
+                root_failed |= err.path() == root;
+                // A child we couldn't even stat still gets a line, with nothing
+                // counted. An unreadable folder is already listed, though.
+                let listed = children.last().is_some_and(|c| c.path == err.path());
+                if err.path().parent() == Some(root) && !listed {
+                    unread.push(err.path().to_path_buf());
+                }
                 print_error(err);
                 failed = true;
                 continue;
             }
         };
-        if entry.is_dir() {
-            continue;
+        close(&mut open, entry.depth(), &mut children, &mut total);
+        open.push(entry.apparent_size());
+        if entry.depth() == 1 {
+            children.push(Child {
+                size: 0,
+                is_dir: entry.is_dir(),
+                path: entry.into_path(),
+            });
         }
-        let size = entry.apparent_size();
-        total += size;
-        write_line(&mut stdout, size, entry.path(), bytes)?;
     }
-    write_line(&mut stdout, total, root, bytes)?;
+    close(&mut open, 0, &mut children, &mut total);
+    children.extend(unread.into_iter().map(|path| Child {
+        size: 0,
+        path,
+        is_dir: false,
+    }));
+
+    // Half a report for a root we couldn't read would just be wrong.
+    if root_failed {
+        return Ok(ExitCode::FAILURE);
+    }
+    // Smallest first, so the biggest ends up right above the total.
+    children.sort_by(|a, b| {
+        let (pa, pb) = (a.path.as_os_str(), b.path.as_os_str());
+        a.size
+            .cmp(&b.size)
+            .then_with(|| pa.as_encoded_bytes().cmp(pb.as_encoded_bytes()))
+    });
+    let mut stdout = io::BufWriter::new(io::stdout().lock());
+    for child in &children {
+        let sep = if child.is_dir { MAIN_SEPARATOR_STR } else { "" };
+        let path = format!("{}{sep}", child.path.display());
+        write_line(&mut stdout, child.size, path, bytes)?;
+    }
+    write_line(&mut stdout, total, root.display(), bytes)?;
     stdout.flush()?;
     Ok(if failed {
         ExitCode::FAILURE
@@ -78,13 +118,36 @@ fn run(root: &Path, bytes: bool) -> io::Result<ExitCode> {
     })
 }
 
-// Tab, not space: paths can have spaces too. 11 is the width of "1023.99 KiB",
-// so the paths line up.
-fn write_line(out: &mut impl Write, size: u64, path: &Path, bytes: bool) -> io::Result<()> {
+// The scan goes depth-first, so once it's back at `depth`, everything deeper is
+// done. Each finished entry goes into its parent; a finished child of the root
+// gets its final size.
+fn close(open: &mut Vec<u64>, depth: usize, children: &mut [Child], total: &mut u64) {
+    while open.len() > depth {
+        let Some(size) = open.pop() else { return };
+        match open.last_mut() {
+            Some(parent) => *parent = parent.saturating_add(size),
+            None => *total = size,
+        }
+        if open.len() == 1 {
+            if let Some(child) = children.last_mut() {
+                child.size = size;
+            }
+        }
+    }
+}
+
+// Tab, not space: paths can have spaces too. Human sizes are padded to the
+// width of "1023.99 KiB" so paths line up; -b stays bare for scripts.
+fn write_line(
+    out: &mut impl Write,
+    size: u64,
+    path: impl fmt::Display,
+    bytes: bool,
+) -> io::Result<()> {
     if bytes {
-        writeln!(out, "{}\t{}", size, path.display())
+        writeln!(out, "{}\t{}", size, path)
     } else {
-        writeln!(out, "{:>11}\t{}", format_size(size), path.display())
+        writeln!(out, "{:>11}\t{}", format_size(size), path)
     }
 }
 
