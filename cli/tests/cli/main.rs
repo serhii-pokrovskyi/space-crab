@@ -1,6 +1,7 @@
 mod args;
 mod bytes;
 mod disk_size;
+mod hard_links;
 mod help;
 mod report;
 #[cfg(unix)]

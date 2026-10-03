@@ -324,6 +324,40 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn test_hard_links_share_file_id() -> io::Result<()> {
+        let tmp = tempdir()?;
+        let dir = tmp.path();
+
+        fs::write(dir.join("a"), b"hello")?;
+        fs::hard_link(dir.join("a"), dir.join("b"))?;
+        fs::write(dir.join("c"), b"hello")?;
+
+        let entries = scan(dir).collect::<Result<Vec<_>, _>>()?;
+
+        let entry = |name| entries.iter().find(|e| e.path() == dir.join(name)).unwrap();
+        assert_eq!(entry("a").file_id(), entry("b").file_id());
+        assert_ne!(entry("a").file_id(), entry("c").file_id());
+        assert_eq!(entry("a").link_count(), Some(2));
+        assert_eq!(entry("c").link_count(), Some(1));
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_file_id_and_link_count_are_none_on_windows() -> io::Result<()> {
+        let tmp = tempdir()?;
+        let file = tmp.path().join("foo.txt");
+        fs::write(&file, b"hello")?;
+
+        let entry = scan(&file).next().unwrap()?;
+
+        assert_eq!(entry.file_id(), None);
+        assert_eq!(entry.link_count(), None);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn test_fifo_and_socket_are_other_and_not_opened() -> io::Result<()> {
         let tmp = tempdir()?;
         let dir = tmp.path();
