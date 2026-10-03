@@ -1,4 +1,5 @@
 mod args;
+mod bytes;
 mod help;
 mod report;
 #[cfg(unix)]
