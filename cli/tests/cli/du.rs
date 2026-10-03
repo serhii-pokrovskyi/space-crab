@@ -16,8 +16,8 @@ fn write_synced(path: &Path, data: &[u8]) -> io::Result<()> {
 }
 
 // Everything that tends to trip up a disk usage count. Lives in the target
-// dir, not /tmp, which is often tmpfs. The socket only exists while the
-// listener does, so it's returned too.
+// dir, not /tmp, which is often tmpfs. The listener is returned too, so it's a
+// live socket while both tools look at it.
 fn fixture() -> io::Result<(TempDir, UnixListener)> {
     let tmp = tempdir_in(env!("CARGO_TARGET_TMPDIR"))?;
     let dir = tmp.path();
@@ -68,12 +68,13 @@ fn root_matches_du() -> io::Result<()> {
     let dir = tmp.path();
 
     assert_eq!(spacecrab_root(dir, &["-b"])?, du(dir, "-sB1")?);
+    // Needs GNU du 9.2 or newer: older ones also count folders' lengths here.
     assert_eq!(spacecrab_root(dir, &["-A", "-b"])?, du(dir, "-sb")?);
     Ok(())
 }
 
-// BSD du has no byte mode and no file-length mode, so compare in KiB, rounded
-// up the way du rounds.
+// BSD du -A still counts folders' own lengths, unlike GNU du, so only space on
+// disk is compared here. -k rounds up per KiB, so we do too.
 #[cfg(target_os = "macos")]
 #[test]
 fn root_matches_du_in_kib() -> io::Result<()> {

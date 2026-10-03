@@ -148,9 +148,8 @@ fn human_sizes_are_right_aligned() -> io::Result<()> {
             format!("1023.99 KiB\t{}", path("d")),
         ]
     );
-    // The root adds the folder's own size, which differs between filesystems.
-    let (size, path) = root.split_once('\t').unwrap();
-    assert_eq!((size.len(), path), (11, "."));
+    // 1 051 101 bytes; with -A the folder itself counts 0.
+    assert_eq!(root, "   1.00 MiB\t.");
     Ok(())
 }
 

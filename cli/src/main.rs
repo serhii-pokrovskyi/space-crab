@@ -86,7 +86,7 @@ fn run(root: &Path, bytes: bool, apparent: bool) -> io::Result<ExitCode> {
         close(&mut open, entry.depth(), &mut children, &mut total);
         // No disk size on Windows, so it's the file length there either way.
         // Only files and symlinks have a real length; a folder's st_size is
-        // filesystem trivia, so like du we count it as 0.
+        // filesystem trivia, so like GNU du we count it as 0.
         let mut size = match entry.disk_size() {
             Some(size) if !apparent => size,
             _ if matches!(entry.kind(), EntryKind::File | EntryKind::Symlink) => {
