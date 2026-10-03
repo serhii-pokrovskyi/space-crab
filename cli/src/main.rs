@@ -26,11 +26,15 @@ struct Args {
     /// Directory to analyze
     #[arg(default_value = ".")]
     path: PathBuf,
+
+    /// Print sizes as exact byte counts
+    #[arg(short, long)]
+    bytes: bool,
 }
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    match run(&args.path) {
+    match run(&args.path, args.bytes) {
         Ok(code) => code,
         Err(err) if err.kind() == io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
         Err(err) => {
@@ -40,7 +44,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(root: &Path) -> io::Result<ExitCode> {
+fn run(root: &Path, bytes: bool) -> io::Result<ExitCode> {
     if let Err(err) = fs::read_dir(root) {
         print_error(format_args!("{}: {}", root.display(), err));
         return Ok(ExitCode::FAILURE);
@@ -63,9 +67,9 @@ fn run(root: &Path) -> io::Result<ExitCode> {
         }
         let size = entry.apparent_size();
         total += size;
-        write_line(&mut stdout, size, entry.path())?;
+        write_line(&mut stdout, size, entry.path(), bytes)?;
     }
-    write_line(&mut stdout, total, root)?;
+    write_line(&mut stdout, total, root, bytes)?;
     stdout.flush()?;
     Ok(if failed {
         ExitCode::FAILURE
@@ -76,8 +80,12 @@ fn run(root: &Path) -> io::Result<ExitCode> {
 
 // Tab, not space: paths can have spaces too. 11 is the width of "1023.99 KiB",
 // so the paths line up.
-fn write_line(out: &mut impl Write, size: u64, path: &Path) -> io::Result<()> {
-    writeln!(out, "{:>11}\t{}", format_size(size), path.display())
+fn write_line(out: &mut impl Write, size: u64, path: &Path, bytes: bool) -> io::Result<()> {
+    if bytes {
+        writeln!(out, "{}\t{}", size, path.display())
+    } else {
+        writeln!(out, "{:>11}\t{}", format_size(size), path.display())
+    }
 }
 
 fn print_error(msg: impl fmt::Display) {
