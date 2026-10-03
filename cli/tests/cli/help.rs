@@ -28,9 +28,12 @@ fn help_explains_sizes_and_exit_codes() -> io::Result<()> {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("Sizes are space used on disk"), "{stdout}");
     assert!(
-        stdout.contains("On Windows sizes are always file lengths."),
+        stdout.contains("A file with several hard links is counted once."),
         "{stdout}"
     );
+    let windows =
+        "On Windows sizes are always\nfile lengths, and each hard link counts separately.";
+    assert!(stdout.contains(windows), "{stdout}");
     assert!(stdout.contains("  0  complete\n"), "{stdout}");
     assert!(
         stdout.contains("  1  results incomplete, or the report couldn't be written\n"),

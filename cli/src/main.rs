@@ -6,6 +6,7 @@ use clap::Parser;
 use formatter::format_size;
 use spacecrab_core::scan;
 use std::{
+    collections::HashSet,
     fmt,
     io::{self, Write},
     path::{MAIN_SEPARATOR_STR, Path, PathBuf},
@@ -14,7 +15,8 @@ use std::{
 
 const AFTER_HELP: &str = "\
 Sizes are space used on disk, as du counts it; -A counts file lengths instead.
-On Windows sizes are always file lengths.
+A file with several hard links is counted once. On Windows sizes are always
+file lengths, and each hard link counts separately.
 
 Exit status:
   0  complete
@@ -61,6 +63,7 @@ fn run(root: &Path, bytes: bool, apparent: bool) -> io::Result<ExitCode> {
     let mut open: Vec<u64> = Vec::new();
     let mut children: Vec<Child> = Vec::new();
     let mut unread = Vec::new();
+    let mut seen = HashSet::new();
     let mut total = 0;
     let mut failed = false;
     let mut root_failed = false;
@@ -82,10 +85,15 @@ fn run(root: &Path, bytes: bool, apparent: bool) -> io::Result<ExitCode> {
         };
         close(&mut open, entry.depth(), &mut children, &mut total);
         // No disk size on Windows, so it's the file length there either way.
-        let size = match entry.disk_size() {
+        let mut size = match entry.disk_size() {
             Some(size) if !apparent => size,
             _ => entry.apparent_size(),
         };
+        // A file with several hard links only counts the first time we meet it.
+        let linked = !entry.is_dir() && entry.link_count().is_some_and(|n| n > 1);
+        if linked && entry.file_id().is_some_and(|id| !seen.insert(id)) {
+            size = 0;
+        }
         open.push(size);
         if entry.depth() == 1 {
             children.push(Child {
