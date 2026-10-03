@@ -212,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "spacecrab"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "clap",
  "spacecrab-core",
@@ -221,7 +221,7 @@ dependencies = [
 
 [[package]]
 name = "spacecrab-core"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "tempfile",
 ]
