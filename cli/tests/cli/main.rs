@@ -1,5 +1,6 @@
 mod args;
 mod bytes;
+mod disk_size;
 mod help;
 mod report;
 #[cfg(unix)]
@@ -18,9 +19,16 @@ fn spacecrab(dir: &Path) -> Command {
     command
 }
 
-// What spacecrab counts for one entry by itself, without anything inside it.
-// Every expected size comes from here, so if the way sizes are measured
-// changes, only this needs to follow.
+// What spacecrab counts for one entry by itself, without anything inside it:
+// space on disk, or the file length on Windows. Every expected size comes from
+// here, so if the way sizes are measured changes, only this needs to follow.
+#[cfg(unix)]
+fn size_of(path: impl AsRef<Path>) -> u64 {
+    use std::os::unix::fs::MetadataExt;
+    fs::symlink_metadata(path).unwrap().blocks() * 512
+}
+
+#[cfg(not(unix))]
 fn size_of(path: impl AsRef<Path>) -> u64 {
     fs::symlink_metadata(path).unwrap().len()
 }

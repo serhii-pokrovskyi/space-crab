@@ -9,6 +9,7 @@ pub struct Entry {
     depth: usize,
     kind: EntryKind,
     apparent_size: u64,
+    disk_size: Option<u64>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -37,6 +38,7 @@ impl Entry {
             depth,
             kind,
             apparent_size: metadata.len(),
+            disk_size: disk_size(metadata),
         }
     }
 
@@ -63,4 +65,21 @@ impl Entry {
     pub fn apparent_size(&self) -> u64 {
         self.apparent_size
     }
+
+    pub fn disk_size(&self) -> Option<u64> {
+        self.disk_size
+    }
+}
+
+// st_blocks is in 512-byte units, whatever the filesystem's block size is.
+#[cfg(unix)]
+fn disk_size(metadata: &fs::Metadata) -> Option<u64> {
+    use std::os::unix::fs::MetadataExt;
+    Some(metadata.blocks().saturating_mul(512))
+}
+
+// Windows would need FFI for this, and core stays std-only.
+#[cfg(not(unix))]
+fn disk_size(_: &fs::Metadata) -> Option<u64> {
+    None
 }

@@ -13,7 +13,8 @@ use std::{
 };
 
 const AFTER_HELP: &str = "\
-Sizes are file lengths (apparent size), not the space used on disk.
+Sizes are space used on disk, as du counts it; -A counts file lengths instead.
+On Windows sizes are always file lengths.
 
 Exit status:
   0  complete
@@ -30,11 +31,15 @@ struct Args {
     /// Print sizes as exact byte counts
     #[arg(short, long)]
     bytes: bool,
+
+    /// Count file lengths instead of space on disk
+    #[arg(short = 'A', long)]
+    apparent_size: bool,
 }
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    match run(&args.path, args.bytes) {
+    match run(&args.path, args.bytes, args.apparent_size) {
         Ok(code) => code,
         Err(err) if err.kind() == io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
         Err(err) => {
@@ -51,7 +56,7 @@ struct Child {
     is_dir: bool,
 }
 
-fn run(root: &Path, bytes: bool) -> io::Result<ExitCode> {
+fn run(root: &Path, bytes: bool, apparent: bool) -> io::Result<ExitCode> {
     // Totals of the entries on the current path, root first.
     let mut open: Vec<u64> = Vec::new();
     let mut children: Vec<Child> = Vec::new();
@@ -76,7 +81,12 @@ fn run(root: &Path, bytes: bool) -> io::Result<ExitCode> {
             }
         };
         close(&mut open, entry.depth(), &mut children, &mut total);
-        open.push(entry.apparent_size());
+        // No disk size on Windows, so it's the file length there either way.
+        let size = match entry.disk_size() {
+            Some(size) if !apparent => size,
+            _ => entry.apparent_size(),
+        };
+        open.push(size);
         if entry.depth() == 1 {
             children.push(Child {
                 size: 0,
