@@ -287,6 +287,43 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn test_disk_size_counts_allocated_blocks() -> io::Result<()> {
+        use std::os::unix::fs::MetadataExt;
+
+        let tmp = tempdir()?;
+        let sparse = tmp.path().join("sparse");
+        fs::File::create(&sparse)?.set_len(1 << 30)?;
+        let written = tmp.path().join("written");
+        fs::write(&written, [1; 1000])?;
+
+        let sparse_entry = scan(&sparse).next().unwrap()?;
+        let written_entry = scan(&written).next().unwrap()?;
+
+        // Nothing was written, so next to nothing is allocated.
+        assert!(sparse_entry.disk_size().unwrap() < 1 << 20);
+        assert_eq!(sparse_entry.apparent_size(), 1 << 30);
+        // st_blocks counts 512-byte units, whatever the block size.
+        let blocks = fs::symlink_metadata(&written)?.blocks();
+        assert!(blocks > 0);
+        assert_eq!(written_entry.disk_size(), Some(blocks * 512));
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_disk_size_is_none_on_windows() -> io::Result<()> {
+        let tmp = tempdir()?;
+        let file = tmp.path().join("foo.txt");
+        fs::write(&file, b"hello")?;
+
+        let entry = scan(&file).next().unwrap()?;
+
+        assert_eq!(entry.disk_size(), None);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn test_fifo_and_socket_are_other_and_not_opened() -> io::Result<()> {
         let tmp = tempdir()?;
         let dir = tmp.path();

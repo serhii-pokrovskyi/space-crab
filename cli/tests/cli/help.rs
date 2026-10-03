@@ -26,8 +26,9 @@ fn help_explains_sizes_and_exit_codes() -> io::Result<()> {
     let output = spacecrab(tmp.path()).arg("--help").output()?;
 
     let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Sizes are space used on disk"), "{stdout}");
     assert!(
-        stdout.contains("Sizes are file lengths (apparent size)"),
+        stdout.contains("On Windows sizes are always file lengths."),
         "{stdout}"
     );
     assert!(stdout.contains("  0  complete\n"), "{stdout}");

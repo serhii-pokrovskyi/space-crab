@@ -104,7 +104,7 @@ fn lines_split_at_first_tab_with_root_last() -> io::Result<()> {
     fs::create_dir(dir.join("my sub"))?;
     fs::write(dir.join("my sub").join("c d.txt"), [0; 20])?;
 
-    let output = spacecrab(dir).output()?;
+    let output = spacecrab(dir).arg("-A").output()?;
     assert!(output.status.success());
 
     let stdout = String::from_utf8(output.stdout).unwrap();
@@ -132,7 +132,7 @@ fn human_sizes_are_right_aligned() -> io::Result<()> {
     fs::write(dir.join("c"), [0; 1536])?;
     fs::write(dir.join("d"), vec![0; 1_048_565])?;
 
-    let output = spacecrab(dir).output()?;
+    let output = spacecrab(dir).arg("-A").output()?;
     assert!(output.status.success());
 
     let stdout = String::from_utf8(output.stdout).unwrap();
