@@ -66,6 +66,25 @@ fn double_dash_ends_options() -> io::Result<()> {
 }
 
 #[test]
+fn one_file_system_flag_is_accepted() -> io::Result<()> {
+    let tmp = tempdir()?;
+    fs::create_dir(tmp.path().join("sub"))?;
+    fs::write(tmp.path().join("sub/a.txt"), [0; 1000])?;
+
+    let plain = spacecrab(tmp.path()).arg("-b").output()?;
+    assert!(plain.status.success());
+
+    // All of it is on one filesystem, so -x changes nothing.
+    for flag in ["-x", "--one-file-system"] {
+        let output = spacecrab(tmp.path()).args(["-b", flag]).output()?;
+
+        assert!(output.status.success(), "{flag}");
+        assert_eq!(output.stdout, plain.stdout, "{flag}");
+    }
+    Ok(())
+}
+
+#[test]
 fn missing_path_exits_1_without_output() -> io::Result<()> {
     let tmp = tempdir()?;
 

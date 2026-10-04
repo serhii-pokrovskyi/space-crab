@@ -4,7 +4,7 @@ mod formatter;
 
 use clap::Parser;
 use formatter::format_size;
-use spacecrab_core::{EntryKind, scan};
+use spacecrab_core::{EntryKind, ScanOptions, scan_with};
 use std::{
     collections::HashSet,
     fmt,
@@ -37,11 +37,16 @@ struct Args {
     /// Count file lengths instead of space on disk
     #[arg(short = 'A', long)]
     apparent_size: bool,
+
+    /// Stay on the filesystem PATH is on (does nothing on Windows)
+    #[arg(short = 'x', long)]
+    one_file_system: bool,
 }
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    match run(&args.path, args.bytes, args.apparent_size) {
+    let options = ScanOptions::default().same_file_system(args.one_file_system);
+    match run(&args.path, options, args.bytes, args.apparent_size) {
         Ok(code) => code,
         Err(err) if err.kind() == io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
         Err(err) => {
@@ -58,7 +63,7 @@ struct Child {
     is_dir: bool,
 }
 
-fn run(root: &Path, bytes: bool, apparent: bool) -> io::Result<ExitCode> {
+fn run(root: &Path, options: ScanOptions, bytes: bool, apparent: bool) -> io::Result<ExitCode> {
     // Totals of the entries on the current path, root first.
     let mut open: Vec<u64> = Vec::new();
     let mut children: Vec<Child> = Vec::new();
@@ -67,7 +72,7 @@ fn run(root: &Path, bytes: bool, apparent: bool) -> io::Result<ExitCode> {
     let mut total = 0;
     let mut failed = false;
     let mut root_failed = false;
-    for entry in scan(root) {
+    for entry in scan_with(root, options) {
         let entry = match entry {
             Ok(entry) => entry,
             Err(err) => {

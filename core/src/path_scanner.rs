@@ -6,9 +6,27 @@ use std::{
     vec,
 };
 
+#[derive(Clone, Debug, Default)]
+pub struct ScanOptions {
+    same_file_system: bool,
+}
+
+impl ScanOptions {
+    pub fn same_file_system(mut self, yes: bool) -> Self {
+        self.same_file_system = yes;
+        self
+    }
+}
+
 pub fn scan(root: impl AsRef<Path>) -> Scan {
+    scan_with(root, ScanOptions::default())
+}
+
+pub fn scan_with(root: impl AsRef<Path>, options: ScanOptions) -> Scan {
     Scan {
         root: Some(root.as_ref().to_path_buf()),
+        options,
+        stay_on: None,
         pending: None,
         levels: Vec::new(),
     }
@@ -18,6 +36,9 @@ pub fn scan(root: impl AsRef<Path>) -> Scan {
 pub struct Scan {
     // The root, until the first call reads it.
     root: Option<PathBuf>,
+    options: ScanOptions,
+    // The root's device when staying on one filesystem, once the root is read.
+    stay_on: Option<u64>,
     // The directory just yielded, with its depth: read on the next call.
     pending: Option<(PathBuf, usize)>,
     // Entries read but not yielded yet, one list per open directory, deepest last.
@@ -31,13 +52,19 @@ impl Iterator for Scan {
         if let Some(root) = self.root.take() {
             // fs::metadata follows a root symlink, so `spacecrab link-to-dir` scans the directory.
             let root = match fs::metadata(&root) {
-                Ok(metadata) => Ok(Entry::new(root, 0, &metadata)),
+                Ok(metadata) => {
+                    if self.options.same_file_system {
+                        self.stay_on = device(&metadata);
+                    }
+                    Ok(Entry::new(root, 0, &metadata))
+                }
                 Err(err) => Err(Error::new(root, err)),
             };
             self.levels.push(vec![root].into_iter());
         }
         if let Some((dir, depth)) = self.pending.take() {
-            self.levels.push(read_children(&dir, depth + 1).into_iter());
+            let children = read_children(&dir, depth + 1, self.stay_on);
+            self.levels.push(children.into_iter());
         }
         while let Some(level) = self.levels.last_mut() {
             match level.next() {
@@ -60,9 +87,9 @@ impl Iterator for Scan {
 
 impl FusedIterator for Scan {}
 
-fn read_children(dir: &Path, depth: usize) -> Vec<Result<Entry, Error>> {
+fn read_children(dir: &Path, depth: usize, stay_on: Option<u64>) -> Vec<Result<Entry, Error>> {
     match fs::read_dir(dir) {
-        Ok(entries) => collect_children(dir, depth, entries),
+        Ok(entries) => collect_children(dir, depth, stay_on, entries),
         Err(err) => vec![Err(Error::new(dir, err))],
     }
 }
@@ -71,6 +98,7 @@ fn read_children(dir: &Path, depth: usize) -> Vec<Result<Entry, Error>> {
 fn collect_children(
     dir: &Path,
     depth: usize,
+    stay_on: Option<u64>,
     entries: impl Iterator<Item = io::Result<fs::DirEntry>>,
 ) -> Vec<Result<Entry, Error>> {
     let mut children = Vec::new();
@@ -79,10 +107,12 @@ fn collect_children(
             Ok(entry) => {
                 let path = entry.path();
                 // DirEntry::metadata does not follow symlinks.
-                children.push(match entry.metadata() {
-                    Ok(metadata) => Ok(Entry::new(path, depth, &metadata)),
-                    Err(err) => Err(Error::new(path, err)),
-                });
+                match entry.metadata() {
+                    // Anything on another filesystem is left out entirely, like du -x.
+                    Ok(metadata) if on_other_device(stay_on, device(&metadata)) => {}
+                    Ok(metadata) => children.push(Ok(Entry::new(path, depth, &metadata))),
+                    Err(err) => children.push(Err(Error::new(path, err))),
+                }
             }
             Err(err) => {
                 children.push(Err(Error::new(dir, err)));
@@ -91,6 +121,22 @@ fn collect_children(
         }
     }
     children
+}
+
+// Both devices have to be known. On Windows they never are, so nothing is skipped.
+fn on_other_device(stay_on: Option<u64>, dev: Option<u64>) -> bool {
+    matches!((stay_on, dev), (Some(root), Some(dev)) if root != dev)
+}
+
+#[cfg(unix)]
+fn device(metadata: &fs::Metadata) -> Option<u64> {
+    use std::os::unix::fs::MetadataExt;
+    Some(metadata.dev())
+}
+
+#[cfg(not(unix))]
+fn device(_: &fs::Metadata) -> Option<u64> {
+    None
 }
 
 #[cfg(test)]
@@ -190,10 +236,63 @@ mod tests {
         let dir = Path::new("some/dir");
         let failing = std::iter::repeat_with(|| Err(io::Error::other("listing failed")));
 
-        let children = collect_children(dir, 1, failing);
+        let children = collect_children(dir, 1, None, failing);
 
         assert_eq!(children.len(), 1);
         assert_eq!(children[0].as_ref().unwrap_err().path(), dir);
+    }
+
+    #[test]
+    fn test_other_device_needs_both_ids_and_a_difference() {
+        assert!(!on_other_device(Some(1), Some(1)));
+        assert!(on_other_device(Some(1), Some(2)));
+        // Option off, or no device ids at all as on Windows: never skip.
+        assert!(!on_other_device(None, Some(2)));
+        assert!(!on_other_device(Some(1), None));
+        assert!(!on_other_device(None, None));
+    }
+
+    #[test]
+    fn test_same_file_system_keeps_a_single_filesystem_whole() -> io::Result<()> {
+        let tmp = tempdir()?;
+        let dir = tmp.path();
+
+        fs::write(dir.join("foo.txt"), b"hello")?;
+        fs::create_dir_all(dir.join("sub/deeper"))?;
+        fs::write(dir.join("sub/deeper/bar.txt"), b"world")?;
+
+        let all = scan(dir).collect::<Result<Vec<_>, _>>()?;
+        let options = ScanOptions::default().same_file_system(true);
+        let same = scan_with(dir, options).collect::<Result<Vec<_>, _>>()?;
+
+        assert_eq!(summary(&same, dir), summary(&all, dir));
+        assert_eq!(same.len(), 5);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_same_file_system_leaves_out_other_devices() -> io::Result<()> {
+        use std::os::unix::fs::MetadataExt;
+
+        let tmp = tempdir()?;
+        let dir = tmp.path();
+        fs::write(dir.join("foo.txt"), b"hello")?;
+        fs::create_dir(dir.join("sub"))?;
+        let dev = fs::metadata(dir)?.dev();
+
+        // Pretend the root is on some other device than everything in here.
+        assert_eq!(read_children(dir, 1, Some(dev)).len(), 2);
+        assert!(read_children(dir, 1, Some(dev.wrapping_add(1))).is_empty());
+
+        // The root's device is only kept when the option is on.
+        let mut on = scan_with(dir, ScanOptions::default().same_file_system(true));
+        on.next();
+        assert_eq!(on.stay_on, Some(dev));
+        let mut off = scan(dir);
+        off.next();
+        assert_eq!(off.stay_on, None);
+        Ok(())
     }
 
     #[cfg(unix)]
