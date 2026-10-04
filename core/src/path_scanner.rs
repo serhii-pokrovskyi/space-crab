@@ -6,22 +6,54 @@ use std::{
     vec,
 };
 
+/// Settings for [`scan_with`]. The default is what [`scan`] uses: go into
+/// other filesystems too, on Unix.
 #[derive(Clone, Debug, Default)]
 pub struct ScanOptions {
     same_file_system: bool,
 }
 
 impl ScanOptions {
+    /// Stay on the root's filesystem, like `du -x`. Anything on another
+    /// device than the root, folder or file, is left out: not yielded, not
+    /// gone into. The root's device is read after following a root symlink.
+    ///
+    /// It compares device ids, and on a Mac the system and data volumes share
+    /// one, so `/` still goes into /System/Volumes/Data.
+    ///
+    /// Does nothing on Windows and other non-Unix targets.
     pub fn same_file_system(mut self, yes: bool) -> Self {
         self.same_file_system = yes;
         self
     }
 }
 
+/// Walks `root` and everything under it, going into other filesystems too, on
+/// Unix. Same as [`scan_with`] with [`ScanOptions::default()`].
 pub fn scan(root: impl AsRef<Path>) -> Scan {
     scan_with(root, ScanOptions::default())
 }
 
+/// Walks `root` and everything under it.
+///
+/// The root comes first, at depth 0. After that it's depth-first: each folder
+/// comes right before its contents. Siblings come in whatever order the OS
+/// lists them, which isn't specified.
+///
+/// A symlink as the root is followed, so a link to a folder scans the folder.
+/// Symlinks below the root are yielded but never followed. A file as the root
+/// yields just that file.
+///
+/// Errors don't stop the scan:
+/// - if the root can't be read at all, there's one error and nothing else;
+/// - a folder that can't be listed is yielded, then an error with its path;
+/// - an entry whose metadata can't be read is an error with its path, instead
+///   of an [`Entry`];
+/// - if listing a folder fails part-way, that's an error with the folder's
+///   path, and the rest of that folder is skipped.
+///
+/// Each folder's listing is read in full before going into a subfolder, so
+/// memory grows with the size of the folders on the current path.
 pub fn scan_with(root: impl AsRef<Path>, options: ScanOptions) -> Scan {
     Scan {
         root: Some(root.as_ref().to_path_buf()),
@@ -32,6 +64,8 @@ pub fn scan_with(root: impl AsRef<Path>, options: ScanOptions) -> Scan {
     }
 }
 
+/// The iterator [`scan`] and [`scan_with`] return. Once it's done, it keeps
+/// returning `None`.
 #[derive(Debug)]
 pub struct Scan {
     // The root, until the first call reads it.
