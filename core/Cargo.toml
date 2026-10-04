@@ -12,3 +12,9 @@ categories = ["filesystem"]
 
 [dev-dependencies]
 tempfile = "3.19.1"
+
+# It's a library others build on, so every public item needs docs and Debug.
+[lints.rust]
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"

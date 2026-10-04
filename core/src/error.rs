@@ -3,6 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// An I/O error, with the path it happened on.
+///
+/// It displays as `path: error`. The exact text isn't covered by SemVer.
 #[derive(Debug)]
 pub struct Error {
     path: PathBuf,
@@ -17,18 +20,25 @@ impl Error {
         }
     }
 
+    /// The path the error is about: the root, a folder that couldn't be
+    /// listed, or an entry whose metadata couldn't be read.
     pub fn path(&self) -> &Path {
         &self.path
     }
 
+    /// The I/O error itself.
     pub fn io_error(&self) -> &io::Error {
         &self.err
     }
 
+    /// Short for `io_error().kind()`.
     pub fn kind(&self) -> io::ErrorKind {
         self.err.kind()
     }
 
+    /// The I/O error itself, with its OS error code if it has one. Converting
+    /// with `io::Error::from` instead keeps the path in the message, but loses
+    /// the code.
     pub fn into_io_error(self) -> io::Error {
         self.err
     }
