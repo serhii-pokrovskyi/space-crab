@@ -48,6 +48,8 @@ Each line is a size, a tab, then the path. Folders inside end with a slash (`\` 
 
 Sizes are the space files take on disk, as `du` counts it, and a file with several hard links counts once. `-A` counts file lengths instead. `-b` prints exact byte counts for scripts, still space on disk unless you add `-A`. On Windows sizes are always file lengths, and every hard link counts.
 
+`-x` stays on the filesystem the folder is on, like `du -x`; it does nothing on Windows. On a Mac, `-x /` still goes into the data volume and counts it twice, so to measure your data, scan `-x /System/Volumes/Data`.
+
 The scanning code is its own crate, [`spacecrab-core`](https://crates.io/crates/spacecrab-core), if you want to use it from Rust.
 
 ## License

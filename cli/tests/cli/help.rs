@@ -15,6 +15,8 @@ fn help_is_printed_without_scanning() -> io::Result<()> {
         let stdout = String::from_utf8(output.stdout).unwrap();
         assert!(stdout.contains("Usage: spacecrab"), "{flag}: {stdout}");
         assert!(!stdout.contains("a.txt"), "{flag}: {stdout}");
+        let x = "--one-file-system  Stay on the filesystem PATH is on (does nothing on Windows)";
+        assert!(stdout.contains(x), "{flag}: {stdout}");
     }
     Ok(())
 }
