@@ -32,11 +32,9 @@
 //! # Stability
 //!
 //! SemVer doesn't cover two things, which may change in any release: the text
-//! of [`Error`]'s message, and the order of siblings in a scan. See the
-//! [stability policy].
+//! of [`Error`]'s message, and the order of siblings in a scan.
 //!
 //! [spacecrab]: https://crates.io/crates/spacecrab
-//! [stability policy]: https://github.com/serhii-pokrovskyi/space-crab#stability
 
 mod entry;
 mod error;
